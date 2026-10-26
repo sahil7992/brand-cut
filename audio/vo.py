@@ -3,14 +3,17 @@
 
 usage:
   vo.py budget                                   live usage vs the job cap in audio/budget.json
-  vo.py voices                                   account voices (name, id, labels, models)
-  vo.py say <project> [--voice ID] [--model M] [--speed 1.1] [--stability .6] [--similarity .8]
+  vo.py voices                                   account voices (ElevenLabs key) or Kokoro voices (no key)
+  vo.py say <project> [--provider auto|elevenlabs|kokoro|system] [--voice ID] [--model M] [--speed 1.1] [--stability .6] [--similarity .8]
                       [--style .35] [--seed N] [--take NAME] [--dry]
         one full-script generation of <project>/audio/vo/script.txt via /with-timestamps,
         then split per line, filler + pause cleanup, light polish -> audio/vo/<take>/
   vo.py post <project> <take>                    redo split/cleanup on an existing take (free)
-  vo.py sfx "<prompt>" <out.mp3> [--dur 1.0] [--influence .4]
-  vo.py music "<prompt>" <out.mp3> [--ms 30000]  Eleven Music, instrumental only
+  vo.py sfx "<prompt>" <out.mp3> [--dur 1.0] [--influence .4]   no key: copies the closest bundled SFX
+  vo.py music "<prompt>" <out.mp3> [--ms 30000]  Eleven Music, instrumental only (needs a key)
+
+Providers (see VOICE.md): auto = elevenlabs if ELEVENLABS_API_KEY is set, else kokoro (local, open source),
+else system (macOS say / espeak-ng). All write the same audio/vo/<take>/L01.wav + lines.json layout.
 
 script.txt: one VO line per line; '#' lines and blanks ignored; an optional "@12.5 " prefix gives
 the line's start on the film timeline (written to lines.json for mix.py). No ellipses, no dashes,
@@ -22,7 +25,7 @@ Guard: before every paid call the live character_count is read; the call is refu
 measured from the counter delta and appended to the ledger file. Never buys credits.
 Key: macOS Keychain service "elevenlabs-api-key" (never written to disk).
 """
-import argparse, base64, datetime, json, os, re, subprocess, sys, urllib.request
+import argparse, base64, datetime, json, os, re, shutil, subprocess, sys, tempfile, urllib.request
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -172,17 +175,109 @@ def post(project, take):
     print(f"{take}: {len(out)} lines, {sum(o['fillers_cut'] for o in out)} filler cuts, total speech {sum(o['dur'] for o in out):.2f} s -> {d}/lines.json")
 
 
+KOKORO_VOICES = {
+    "af_heart": "American female, warm (default)", "af_bella": "American female, bright", "af_nicole": "American female, soft",
+    "af_sarah": "American female, neutral", "am_michael": "American male, steady (default male)", "am_adam": "American male, deep",
+    "am_fenrir": "American male, strong", "bf_emma": "British female", "bm_george": "British male",
+}
+
+
+def kokoro_cmd(*args):
+    return ["uvx", "--python", "3.12", "--with", "kokoro>=0.9.4", "--with", "soundfile", "--with", "pip",
+            "python", "-I", str(HERE / "tts_kokoro.py"), *map(str, args)]
+
+
+def pick_provider(a):
+    p = a.provider
+    if p != "auto":
+        return p, f"--provider {p}"
+    if os.environ.get("ELEVENLABS_API_KEY"):
+        return "elevenlabs", "ELEVENLABS_API_KEY is set"
+    if shutil.which("uvx"):
+        return "kokoro", "no ELEVENLABS_API_KEY; uvx found, running Kokoro-82M locally"
+    return "system", "no ELEVENLABS_API_KEY and no uvx for Kokoro; using the OS voice"
+
+
+def finish_local(project, take, lines, raws, meta):
+    """raw per-line audio -> L01.wav (48 kHz mono, same polish as the ElevenLabs path) + lines.json."""
+    d = Path(project) / "audio/vo" / take
+    out = []
+    for i, (ln, raw) in enumerate(zip(lines, raws), 1):
+        dst = d / f"L{i:02d}.wav"
+        ff("-i", str(raw), "-af", "silenceremove=start_periods=1:start_threshold=-50dB,areverse,silenceremove=start_periods=1:start_threshold=-50dB,areverse,"
+           "highpass=f=70,acompressor=threshold=-20dB:ratio=2:attack=8:release=120,afade=t=in:d=0.015,areverse,afade=t=in:d=0.03,areverse,alimiter=limit=0.7",
+           "-ar", "48000", "-ac", "1", str(dst))
+        dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(dst)], capture_output=True, text=True).stdout)
+        out.append({"i": i, "file": str(dst.relative_to(Path(project))), "text": ln["text"], "at": ln["at"], "dur": round(dur, 3), "fillers_cut": 0})
+    (d / "lines.json").write_text(json.dumps(out, indent=2))
+    (d / "take.json").write_text(json.dumps({**meta, "lines": lines}, indent=2))
+    print(f"{take}: {len(out)} lines, total speech {sum(o['dur'] for o in out):.2f} s -> {d}/lines.json")
+
+
+def say_kokoro(a, lines, take):
+    voice = a.voice if a.voice in KOKORO_VOICES or re.match(r"^[a-z]{2}_[a-z]+$", a.voice or "") else "af_heart"
+    if a.voice and voice != a.voice:
+        print(f"voice {a.voice!r} is not a Kokoro id; using {voice}")
+    d = Path(a.project) / "audio/vo" / take
+    d.mkdir(parents=True, exist_ok=True)
+    tmp = Path(tempfile.mkdtemp())
+    (tmp / "lines.json").write_text(json.dumps([ln["tts_text"] for ln in lines]))
+    print(f"kokoro: voice {voice}, speed {a.speed} (first run downloads ~330 MB of weights)")
+    r = subprocess.run(kokoro_cmd(tmp / "lines.json", tmp, voice, a.speed), capture_output=True, text=True)
+    raws = [tmp / f"raw{i:02d}.wav" for i in range(1, len(lines) + 1)]
+    if r.returncode or not all(x.exists() for x in raws):
+        print("kokoro failed:", (r.stderr or r.stdout).strip()[-600:], file=sys.stderr)
+        if "espeak" in (r.stderr + r.stdout).lower():
+            print("espeak-ng is missing; install it yourself (brew install espeak-ng / apt install espeak-ng)", file=sys.stderr)
+        return False
+    finish_local(a.project, take, lines, raws, {"provider": "kokoro", "voice": voice, "speed": a.speed})
+    shutil.rmtree(tmp, ignore_errors=True)
+    return True
+
+
+def say_system(a, lines, take):
+    d = Path(a.project) / "audio/vo" / take
+    d.mkdir(parents=True, exist_ok=True)
+    tmp = Path(tempfile.mkdtemp())
+    raws = []
+    for i, ln in enumerate(lines, 1):
+        raw = tmp / f"raw{i:02d}.wav"
+        if shutil.which("say"):
+            aiff = tmp / f"raw{i:02d}.aiff"
+            subprocess.run(["say", *(["-v", a.voice] if a.voice else []), "-r", str(int(175 * a.speed)), "-o", str(aiff), ln["tts_text"]], check=True)
+            ff("-i", str(aiff), str(raw))
+        elif shutil.which("espeak-ng"):
+            subprocess.run(["espeak-ng", *(["-v", a.voice] if a.voice else []), "-s", str(int(160 * a.speed)), "-w", str(raw), ln["tts_text"]], check=True)
+        else:
+            sys.exit("no TTS available: need uvx (Kokoro), macOS say, or espeak-ng")
+        raws.append(raw)
+    finish_local(a.project, take, lines, raws, {"provider": "system", "voice": a.voice, "speed": a.speed})
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
 def say(a):
     lines = read_script(a.project)
     alias, vcfg = brand_alias(a.project)
-    voice = a.voice or vcfg.get("default_voice_id")
-    if not voice:
-        sys.exit("no --voice and brand.json voice.default_voice_id is empty")
+    provider, why = pick_provider(a)
+    print(f"provider: {provider} ({why})")
     for ln in lines:
         t = ln["text"]
         for k, v in alias.items():
             t = re.sub(rf"\b{re.escape(k)}\b", v, t)
         ln["tts_text"] = t
+    if provider != "elevenlabs":
+        take = a.take or f"{provider}-{datetime.datetime.now():%H%M%S}"
+        if a.dry:
+            print("\n".join(ln["tts_text"] for ln in lines)); return
+        if provider == "kokoro" and not say_kokoro(a, lines, take):
+            print("falling through to the system voice", file=sys.stderr)
+            provider = "system"
+        if provider == "system":
+            say_system(a, lines, take)
+        return
+    voice = a.voice or vcfg.get("default_voice_id")
+    if not voice:
+        sys.exit("no --voice and brand.json voice.default_voice_id is empty")
     text = " ".join(ln["tts_text"] for ln in lines)
     est = len(text)
     take = a.take or f"{a.model.split('_')[1]}-{voice[:6]}-{datetime.datetime.now():%H%M%S}"
@@ -207,6 +302,14 @@ def say(a):
 
 
 def sfx(a):
+    if not os.environ.get("ELEVENLABS_API_KEY"):
+        idx = json.loads((HERE / "sfx/INDEX.json").read_text())
+        words = set(re.findall(r"[a-z]+", a.prompt.lower()))
+        score = lambda n, v: len(words & set(re.findall(r"[a-z]+", f"{n} {v['kind']}".lower())))
+        name, v = max(idx.items(), key=lambda kv: score(*kv))
+        shutil.copy(HERE / v["file"], a.out)
+        print(f"no ELEVENLABS_API_KEY: copied bundled SFX '{name}' ({v['kind']}, {v['dur']} s) -> {a.out}" + ("" if score(name, v) else " (no keyword match, first entry)"))
+        return
     est = 200
     before = guard(est, "SFX")
     body = {"text": a.prompt, "prompt_influence": a.influence, "model_id": "eleven_text_to_sound_v2"}
@@ -217,6 +320,8 @@ def sfx(a):
 
 
 def music(a):
+    if not os.environ.get("ELEVENLABS_API_KEY"):
+        sys.exit("music generation needs ELEVENLABS_API_KEY. Without one, drop a track into $MOTION_LIBRARY/music (see audio/music.md) and point events.json at it.")
     est = int(round(900 * a.ms / 60000))
     before = guard(est, "music")
     body = {"prompt": a.prompt, "music_length_ms": a.ms, "model_id": "music_v1", "force_instrumental": True}
@@ -228,7 +333,7 @@ def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("budget"); sub.add_parser("voices")
-    s = sub.add_parser("say"); s.add_argument("project"); s.add_argument("--voice"); s.add_argument("--model", default="eleven_turbo_v2_5")
+    s = sub.add_parser("say"); s.add_argument("project"); s.add_argument("--provider", choices=["auto", "elevenlabs", "kokoro", "system"], default="auto"); s.add_argument("--voice"); s.add_argument("--model", default="eleven_turbo_v2_5")
     s.add_argument("--speed", type=float, default=1.1); s.add_argument("--stability", type=float, default=0.6)
     s.add_argument("--similarity", type=float, default=0.8); s.add_argument("--style", type=float, default=0.35)
     s.add_argument("--seed", type=int); s.add_argument("--take"); s.add_argument("--dry", action="store_true")
@@ -240,6 +345,10 @@ def main():
         c = cfg(); used, limit, tier = usage()
         job = max(used - c['baseline_character_count'], c.get('local_spent', 0))
         print(f"{tier}: account {used:,}/{limit:,}; job {job:,}/{c['job_cap']:,} spent (counter {used - c['baseline_character_count']:,}, ledger {c.get('local_spent', 0):,}); {c['job_cap'] - job:,} left for this job")
+    elif a.cmd == "voices" and not os.environ.get("ELEVENLABS_API_KEY"):
+        print("no ELEVENLABS_API_KEY; Kokoro voices (any Kokoro id works, see github.com/hexgrad/kokoro):")
+        for k, v in KOKORO_VOICES.items():
+            print(f"{k:12s} {v}")
     elif a.cmd == "voices":
         for v in call("GET", "/v1/voices")["voices"]:
             lb = v.get("labels", {})

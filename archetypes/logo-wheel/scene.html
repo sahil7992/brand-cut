@@ -1,0 +1,112 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"lead","type":"string","label":"Static wordmark left of the wheel; empty = brand name","default":""},
+  {"id":"line","type":"string","label":"Static line under the wordmark","default":"Works with Claude Code, Codex, OpenCode, and any agent that reads Agent Skills."},
+  {"id":"items","type":"string","label":"Wheel slots, | separated, each Label=path/to/logo.svg (project-relative)","default":"Claude Code=assets/logos/claude.svg|Codex=assets/logos/codex.svg|OpenCode=assets/logos/opencode.svg"},
+  {"id":"hold","type":"number","label":"Seconds each logo holds between rotations","default":1.2,"min":0.6,"max":3,"step":0.1},
+  {"id":"turn","type":"number","label":"Seconds one rotation takes","default":1.2,"min":0.5,"max":1.5,"step":0.05}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-display); }
+        #__ID__-glow { position: absolute; inset: 0; }
+        #__ID__-lead { position: absolute; white-space: nowrap; color: var(--ink); font-weight: var(--w-display); letter-spacing: var(--track-display); line-height: 1; }
+        #__ID__-line { position: absolute; color: var(--ink-soft); font-family: var(--font-ui); font-weight: 400; line-height: 1.32; letter-spacing: -0.005em; }
+        #__ID__-card { position: absolute; overflow: hidden; border-radius: 34px; background: linear-gradient(180deg, rgba(20,17,15,.78), rgba(11,11,12,.72));
+          box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.16), inset 0 1.5px 0 rgba(255,255,255,.22), 0 30px 60px rgba(0,0,0,.5); backdrop-filter: blur(22px) saturate(1.4); }
+        #__ID__-wheel { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; }
+        .__ID__-row { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; backface-visibility: hidden; will-change: transform, opacity, filter; }
+        .__ID__-row img { display: block; width: auto; }
+        .__ID__-row span { color: var(--ink); font-weight: 500; letter-spacing: -0.02em; white-space: nowrap; }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <div id="__ID__-glow"></div>
+        <div id="__ID__-lead"></div>
+        <div id="__ID__-line"></div>
+        <div id="__ID__-card"><div id="__ID__-wheel"></div></div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe;
+          const v = window.__hyperframes.getVariables();
+          const wide = W / H > 1.5; /* banner and 16x9 share the row layout; other formats stack */
+          const ux0 = safe.left, ux1 = W - safe.right, uy0 = safe.top, uy1 = H - safe.bottom, uw = ux1 - ux0, uh = uy1 - uy0;
+          const items = String(v.items).split("|").map(s => s.trim()).filter(Boolean).map(s => { const i = s.indexOf("="); return { label: s.slice(0, i), src: s.slice(i + 1) }; });
+          const n = items.length, HOLD = +v.hold, TURN = +v.turn, PERIOD = HOLD + TURN;
+          const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+          const $ = s => document.getElementById(ID + "-" + s);
+
+          /* the same warm glow as the README banner: hot in the lower right, dark everywhere else */
+          const glow = $("glow");
+          glow.style.background = "radial-gradient(ellipse 85% 130% at 78% 110%, var(--glow-7) 0%, var(--glow-5) 35%, var(--glow-2) 70%, transparent 100%)";
+
+          /* layout */
+          const lead = $("lead"), line = $("line"), card = $("card"), wheel = $("wheel");
+          let cw, ch, cx, cy, lx, ly, lfs, lnfs, lnw;
+          if (wide) {
+            ch = uh; cw = Math.round(ch * 1.02); cx = ux1 - cw; cy = uy0;
+            lx = ux0; lnw = cx - ux0 - 90;
+            lfs = Math.round(Math.min(H * 0.3, lnw / 4.6)); lnfs = Math.round(H * 0.066);
+          } else {
+            cw = Math.min(uw, 760); ch = Math.round(cw * 0.98); cx = Math.round((W - cw) / 2); cy = uy1 - ch;
+            lx = ux0; lnw = uw; lfs = Math.round(Math.min(uw / 4.6, 200)); lnfs = Math.round(lfs * 0.26);
+          }
+          lead.textContent = String(v.lead || "").trim() || B.name;
+          line.textContent = v.line;
+          Object.assign(lead.style, { left: lx + "px", fontSize: lfs + "px" });
+          Object.assign(line.style, { left: lx + "px", width: lnw + "px", fontSize: lnfs + "px" });
+          const lineH = lnfs * 1.32 * Math.ceil(line.scrollHeight / (lnfs * 1.32) - 0.01);
+          const gap = Math.round(lfs * 0.22), blockH = lfs + gap + lineH;
+          const by = wide ? Math.round(uy0 + (uh - blockH) / 2) : uy0 + 20;
+          lead.style.top = by + "px"; line.style.top = (by + lfs + gap) + "px";
+          Object.assign(card.style, { left: cx + "px", top: cy + "px", width: cw + "px", height: ch + "px" });
+
+          /* drum: one row per logo, rows wrap, so position n is position 0 and the loop is exact */
+          const STEP = 34, rad = STEP * Math.PI / 360, R = ch / (2 * Math.sin(rad));
+          const markH = Math.round(Math.min(H * 0.58, ch * 0.78)), labFs = Math.round(markH * 0.115), labGap = Math.round(markH * 0.04);
+          wheel.style.perspective = "2400px"; wheel.style.perspectiveOrigin = "0 0";
+          const rows = items.map(it => {
+            const el = document.createElement("div");
+            el.className = ID + "-row";
+            Object.assign(el.style, { left: -cw / 2 + "px", top: -ch / 2 + "px", width: cw + "px", height: ch + "px" });
+            el.innerHTML = '<img src="' + it.src + '" style="height:' + markH + 'px" /><span style="font-size:' + labFs + "px;margin-top:" + labGap + 'px">' + it.label + "</span>";
+            wheel.appendChild(el); return el;
+          });
+          const wrap = d => ((d + n / 2) % n + n) % n - n / 2;
+          const render = (pos, vel) => {
+            rows.forEach((el, i) => {
+              const d = wrap(i - pos), ad = Math.abs(d), a = d * STEP * Math.PI / 180;
+              if (ad > 1.2) { el.style.visibility = "hidden"; return; }
+              const y = R * Math.sin(a), z = R * Math.cos(a) - R;
+              el.style.visibility = "visible";
+              el.style.opacity = (f => f * f * (3 - 2 * f))(clamp(1 - 1.5 * ad, 0, 1)).toFixed(3);
+              el.style.transform = "translate3d(0," + y.toFixed(2) + "px," + z.toFixed(2) + "px) rotateX(" + (-d * STEP).toFixed(2) + "deg)";
+              const bl = Math.min(12, Math.abs(vel) * 6);
+              el.style.filter = bl > 0.4 ? "blur(" + bl.toFixed(2) + "px)" : "none";
+            });
+          };
+          /* hold, then one eased turn; periodic, so t = n * PERIOD equals t = 0 */
+          const ease = gsap.parseEase("power2.inOut");
+          const posAt = t => {
+            const k = Math.floor(t / PERIOD), r = t - k * PERIOD;
+            return k + (r < HOLD ? 0 : ease((r - HOLD) / TURN));
+          };
+          const drv = { t: 0 };
+          const draw = () => render(posAt(drv.t), (posAt(drv.t + 0.008) - posAt(drv.t - 0.008)) / 0.016);
+          draw();
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo(drv, { t: 0 }, { t: n * PERIOD, duration: n * PERIOD, ease: "none", onUpdate: draw }, 0);
+          /* slow periodic drift of the glow, no beat, no pulse */
+          const gl = { p: 0 };
+          tl.fromTo(gl, { p: 0 }, { p: 1, duration: n * PERIOD, ease: "none", onUpdate: () => { glow.style.transform = "translateX(" + (Math.sin(gl.p * 2 * Math.PI) * 14).toFixed(2) + "px)"; } }, 0);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

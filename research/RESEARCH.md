@@ -7,7 +7,7 @@ Setup: `ID=tidewell; mkdir -p brands/$ID/assets/{ui,brand,fonts} research/$ID; c
 
 ## Mode A: website (name or URL only)
 1. Name only: search for the official site and its docs/changelog/press URLs. Do not guess URLs.
-2. Fetch home, product, pricing, docs index, changelog/blog (WebFetch; for JS-rendered sites use Playwright):
+2. Fetch home, product, pricing, docs index, changelog/blog (your agent's web fetch tool or curl; for JS-rendered sites use Playwright):
    `npx playwright screenshot --full-page --device-scale-factor=2 https://site.com research/$ID/home.png`
 3. Logo as SVG: inline `<svg>` in the header (`document.querySelector('header svg').outerHTML`), `/logo.svg`, `/favicon.svg`, or the press/brand page. Save to `assets/brand/mark.svg`. Never redraw or approximate it; copy exact colours.
 4. Fonts: `curl -s https://site.com | grep -oE 'https://[^"]+\.css'`, then read the CSS for `@font-face` and Google Fonts `family=` links. Download only fonts with an open licence (OFL, Apache); otherwise pick the closest open font and note it in `design.look`.

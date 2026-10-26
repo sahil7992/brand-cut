@@ -14,8 +14,8 @@
   <rect width="1280" height="360" fill="#0B0B0C"/>
   <rect width="1280" height="360" fill="url(#g)"/>
   <g font-family="-apple-system, 'SF Pro Display', 'Inter', 'Helvetica Neue', Arial, sans-serif">
-    <text x="80" y="170" fill="#F5F1EC" font-size="96" font-weight="600" letter-spacing="-3">brandcut</text>
-    <text x="84" y="226" fill="#F5F1EC" fill-opacity="0.72" font-size="28" font-weight="400">Give Claude Code a company. Get a product film.</text>
+    <text x="80" y="170" fill="#F5F1EC" font-size="96" font-weight="600" letter-spacing="-3">brand-cut</text>
+    <text x="84" y="226" fill="#F5F1EC" fill-opacity="0.72" font-size="28" font-weight="400">Give your agent a company. Get a product film.</text>
   </g>
   <g transform="translate(860,70)">
     <rect width="340" height="200" rx="22" fill="url(#glass)" stroke="#ffffff" stroke-opacity="0.22"/>

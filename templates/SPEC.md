@@ -39,7 +39,7 @@ From the brand block in index.html: `var(--bg) --ink --accent --accent-lift --ac
 
 ## 8. Engineering contract
 - Scenes are sub-compositions in `compositions/<scene-id>.html`: everything inside `<template>`; root `<div id="root" data-composition-id="<scene-id>" data-width=".." data-height="..">` styled by `#root { position:absolute; inset:0 }`; one `gsap.timeline({paused:true})` registered at `window.__timelines["<scene-id>"]`; `gsap.fromTo` for entrances; deterministic only (no Math.random, Date, network; seeded PRNG if needed). Prefix every element id with the scene id.
-- Start scenes from an archetype: `python3 ~/.claude/skills/brandcut/scripts/add-scene.py <project> <archetype> <scene-id> <start> <dur> [--vars JSON]`.
+- Start scenes from an archetype: `python3 <skill-dir>/scripts/add-scene.py <project> <archetype> <scene-id> <start> <dur> [--vars JSON]`.
 - Own only your files (your scenes and `assets/<scene-id>/`). Never edit index.html, SPEC.md, other scenes or shared assets; report needed changes instead.
 - Verify by looking: `npx hyperframes snapshot --composition=<scene-id> --frames=8 -o .hyperframes/snap-<scene-id>`; at most 12 frames per run. `npx hyperframes lint` shows no errors in your files.
 - Report (under 250 words): what you built, times verified, what falls short and why, asset sources.

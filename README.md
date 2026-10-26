@@ -1,9 +1,10 @@
 <p align="center">
-  <img src="docs/img/banner.svg" alt="brandcut" width="100%">
+  <img src="docs/img/banner.gif" alt="brand-cut works with Claude Code, Codex and OpenCode" width="100%">
 </p>
 
 <p align="center">
-  <b>A Claude Code skill that turns a company name, a URL or a codebase into a product film.</b><br>
+  <b>An agent skill that turns a company name, a URL or a codebase into a product film.</b><br>
+  Works with Claude Code, Codex, OpenCode and any agent that reads <a href="https://agentskills.io">Agent Skills</a>.<br>
   It researches the product, builds a brand kit, scripts real product moments, and builds the film from 30 motion-design archetypes studied frame by frame from 18 premium reels.
 </p>
 
@@ -50,18 +51,28 @@ The skill researched supabase.com and the brand assets page for the exact logo a
 ## Quick start
 
 ```sh
-git clone https://github.com/sahil7992/brandcut
-cd brandcut && ./install.sh        # symlinks into ~/.claude/skills/brandcut
+git clone https://github.com/sahil7992/brand-cut
+cd brand-cut && ./install.sh
 ```
 
-Then, in Claude Code:
+`install.sh` symlinks the folder (so `git pull` updates every agent at once):
+
+| Agent | Where it installs | Command |
+|---|---|---|
+| Claude Code | `~/.claude/skills/brand-cut` | `./install.sh claude` |
+| Codex | `~/.agents/skills/brand-cut` | `./install.sh agents` |
+| OpenCode | `~/.config/opencode/skills/brand-cut` (it also reads the two above) | `./install.sh opencode` |
+| Anything else | any skills folder | `./install.sh <dir>` |
+
+With no argument it installs for Claude Code and `~/.agents/skills`. Restart the agent, then ask:
 
 ```
 make a 15 second launch film for <company name | URL | path to repo>
 ```
 
-Requirements: [Node 18+](https://nodejs.org) (HyperFrames runs through `npx`), Python 3.10+, `ffmpeg`.
-Optional: `ELEVENLABS_API_KEY` for voiceover (a guard caps spend per job), and a music folder at `$MOTION_LIBRARY/music`.
+Requirements: [Node 18+](https://nodejs.org) (HyperFrames runs through `npx`), Python 3.10+, `ffmpeg`, [uv](https://docs.astral.sh/uv/).
+
+**Voice: bring a key or don't.** With `ELEVENLABS_API_KEY` set, voiceover uses ElevenLabs (a budget guard caps spend per job). Without it, brand-cut falls back to [Kokoro](https://github.com/hexgrad/kokoro), an open-source TTS model that runs locally, with the same output so the rest of the pipeline doesn't care. Details: [`audio/VOICE.md`](audio/VOICE.md). Music: drop tracks in `$MOTION_LIBRARY/music`.
 
 More prompts that work:
 
@@ -168,4 +179,4 @@ From [`LEARNINGS.md`](LEARNINGS.md), all learned the hard way:
 
 Built on [HyperFrames](https://github.com/heygen-com/hyperframes) by HeyGen. Archetypes were studied from reels by @xzecreative, @anmoldoesmotion, @dija_motion, @cevox__, @tryholo.ai, @jordans.archivess, @whocoralarya_, @sandydesignstudio_, @royrayfer, @matheusmtusalem, @diegotomasfx, @coderabbitai, @saqibsouban, @youmotioncom, @kendel4204 and @drae.visuals; links in [`reference/studies/INDEX.md`](reference/studies/INDEX.md). Their frames aren't redistributed here, only notes on how the motion is built.
 
-MIT licensed. Sample films of third-party brands are unofficial demos.
+MIT licensed. Sample films of third-party brands are unofficial demos. Claude, Codex/OpenAI, OpenCode and Supabase logos are trademarks of their owners, shown only to say what the skill works with or as demo subjects (sources in `brands/brand-cut/assets/logos/SOURCES.md`).

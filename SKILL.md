@@ -1,9 +1,14 @@
 ---
-name: brandcut
+name: brand-cut
 description: Plug-and-play motion design studio for product films in HyperFrames. Give it a company name, a URL or a codebase and it researches the product, builds a brand kit (logo, fonts, colours, real UI), scripts real product moments, and builds the film from 30 archetype scene templates studied from 18 premium reference reels. Includes an ElevenLabs voiceover pipeline with a budget guard, an SFX mix, native format presets (16:9 1080/4K, 9:16, 1:1, 4:5), and QA gates including a WCAG flash check. Use for product launch films, social cuts, explainers, logo stings, reel recreations ("make this kind of motion for X"), or "make a video for <company>".
+license: MIT
+compatibility: Any agent that reads Agent Skills (Claude Code, Codex, OpenCode, ...) with shell access. Needs Node 18+, Python 3.10+, ffmpeg and uv. Web access for company research. ELEVENLABS_API_KEY optional (falls back to open-source Kokoro TTS).
+metadata:
+  author: sahil7992
+  version: "0.1.0"
 ---
 
-# brandcut
+# brand-cut
 
 `company / URL / repo -> research -> brand kit -> script of product moments -> storyboard -> (VO) -> archetype build -> (mix) -> QA -> render matrix -> deliver`
 
@@ -37,7 +42,9 @@ templates/              SPEC.md (film contract), index.html, project/, structure
 reference/              PATTERNS.md (archetype library + laws), RESEARCH-digest.md, studies/ (18 reel breakdowns + INDEX.md)
 examples/               finished sample films with their brand kit, SPEC and stills
 ```
-Requirements: Node 18+ (`npx hyperframes`), Python 3.10+, ffmpeg. Optional: `ELEVENLABS_API_KEY` for voiceover, a music folder (`$MOTION_LIBRARY/music`).
+Requirements: Node 18+ (`npx hyperframes`), Python 3.10+, ffmpeg, [uv](https://docs.astral.sh/uv/) (`uvx` runs the QA and audio scripts in throwaway envs). Optional: `ELEVENLABS_API_KEY` for voiceover (without it, `audio/vo.py` falls back to open-source Kokoro TTS; see `audio/VOICE.md`), a music folder (`$MOTION_LIBRARY/music`).
+
+Works in any agent with a shell. Where this file says "subagents", run the steps sequentially if your agent has none; "web fetch" means whatever fetch/browse tool your agent has, or `curl`.
 
 ## 2. Pipeline
 0. **Research** (`research/RESEARCH.md`). Codebase mode when you have the repo (most accurate), website mode otherwise, both when you can. Output: `brands/<id>/brand.json`, `truths` with sources, real UI captures in `brands/<id>/assets/ui/`, and 5-8 product moments.
@@ -61,6 +68,7 @@ Requirements: Node 18+ (`npx hyperframes`), Python 3.10+, ffmpeg. Optional: `ELE
 | 9x16 | 1080x1920 | 270/680/70/140 | Reels, TikTok, Shorts |
 | 1x1 | 1080x1080 | 86/86/135/135 | IG/LinkedIn feed |
 | 4x5 | 1080x1350 | 108/108/86/86 | IG/FB feed |
+| banner | 1920x600 | 60/60/96/96 | README / site header strip (silent loop) |
 
 Scenes read `window.BRAND.format` and branch layout per format (`[data-fmt="9x16"]`). The short side is always 1080 px, so px sizes carry across; scale heroes up in vertical.
 

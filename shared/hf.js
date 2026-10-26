@@ -1,4 +1,4 @@
-/* hf.js - tiny shared runtime for brandcut scenes (loaded by index.html before any scene).
+/* hf.js - tiny shared runtime for brand-cut scenes (loaded by index.html before any scene).
  * window.HF: BW/BH (canvas px), fmt ("16x9"|"9x16"|"1x1"|"4x5"), vert/land/square flags, pick({"16x9":a,"9x16":b,...,def}),
  * clamp/lerp/ramp/smooth, rng(seed) (mulberry32: the only randomness allowed). Brand data lives in window.BRAND.
  */

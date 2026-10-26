@@ -71,6 +71,22 @@
       "LinkedIn"
     ]
   },
+  "banner": {
+    "w": 1920,
+    "h": 600,
+    "resolution": "landscape",
+    "render4k": "landscape-4k",
+    "safe": {
+      "top": 60,
+      "bottom": 60,
+      "left": 96,
+      "right": 96
+    },
+    "platforms": [
+      "README header",
+      "website hero strip"
+    ]
+  },
   "loudness": {
     "integrated_lufs": -14,
     "true_peak_dbtp": -1.3,
