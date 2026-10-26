@@ -1,0 +1,178 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"lead","type":"string","label":"Lead id from BRAND.cast.leads (jordan, priya, marcus, ana)","default":"jordan"},
+  {"id":"channel","type":"enum","label":"Channel","default":"auto","options":[{"value":"auto","label":"The lead own channel"},{"value":"sms","label":"SMS"},{"value":"whatsapp","label":"WhatsApp"}]},
+  {"id":"count","type":"number","label":"How many messages of BRAND.story.sampleThread","default":4,"min":1,"max":8,"step":1},
+  {"id":"phone","type":"boolean","label":"Inside the photoreal phone (false = big flat thread)","default":true},
+  {"id":"chip","type":"boolean","label":"Closing Showing booked chip","default":true},
+  {"id":"chipText","type":"string","label":"Chip label","default":"Showing booked"},
+  {"id":"typing","type":"number","label":"Seconds of typing dots before each assistant reply","default":0.8,"min":0.6,"max":1.0,"step":0.05},
+  {"id":"fadeOut","type":"boolean","label":"Blur out at the end","default":true}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-ui); }
+        #__ID__-drift, #__ID__-stage { position: absolute; inset: 0; }
+        #__ID__-card { position: absolute; left: 0; top: 0; transform-origin: 0 0; border-radius: 22px; }
+        #__ID__-card .ru-thread { width: 365px; border-radius: 22px; position: relative; display: flex; flex-direction: column; }
+        #__ID__-card .ru-thread .bd { flex: 1; position: relative; padding-bottom: 0; }
+        .__ID__-clip { overflow: hidden; position: relative; }
+        .__ID__-skin { position: absolute; inset: 0; border-radius: 22px; pointer-events: none;
+          box-shadow: inset 0 1.5px 0 rgba(255,255,255,.28), inset 1.5px 0 0 rgba(255,255,255,.12), inset 0 -2px 0 rgba(0,0,0,.5); }
+        #__ID__-card .ru-b { font-size: 17px; line-height: 1.34; padding: 11px 14px; }
+        #__ID__-card .ru-meta { font-size: 12px; }
+        #__ID__-card .ru-msg { max-width: 86%; }
+        .__ID__-dots { position: absolute; background: var(--app-raised); border: 1px solid var(--app-hair); border-radius: 14px; border-bottom-right-radius: 4px; padding: 13px 14px; opacity: 0; }
+        .__ID__-dots .ru-typing { height: 8px; }
+        .__ID__-dots .ru-typing i { width: 7px; height: 7px; }
+        .__ID__-chip { position: relative; align-self: center; margin: 14px 0 6px; display: flex; align-items: center; gap: 10px; padding: 11px 16px 11px 12px; border-radius: 999px; color: var(--app-text);
+          background: color-mix(in srgb, var(--app-green) 14%, var(--app-raised)); border: 1px solid color-mix(in srgb, var(--app-green) 45%, var(--app-hair)); font-size: 16px; font-weight: 600; letter-spacing: var(--track-ui); opacity: 0; }
+        .__ID__-chip .tk { width: 24px; height: 24px; border-radius: 50%; background: var(--app-green); display: flex; align-items: center; justify-content: center; }
+        .__ID__-chip small { font-weight: 500; font-size: 14px; color: var(--app-muted); }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <div id="__ID__-drift"><div id="__ID__-stage"></div></div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe, RU = HF.realui;
+          const v = window.__hyperframes.getVariables();
+          const $ = (s) => document.getElementById(ID + "-" + s);
+          const stage = $("stage");
+          const lead = B.cast.leads.find((l) => l.id === v.lead) || B.cast.leads[0];
+          const chan = v.channel === "sms" ? "SMS" : v.channel === "whatsapp" ? "WhatsApp" : lead.channel;
+          const src = B.story.sampleThread.slice(0, Math.max(1, Math.round(+v.count)));
+          const out = (m) => m.from === "assistant";
+          const seconds = [4, 6, 9, 7, 8, 5, 10, 6];
+          let ei = 0;
+          const msgs = src.map((m, i) => out(m)
+            ? { from: "out", text: m.text, meta: B.name + " · " + seconds[ei++ % seconds.length] + "s" }
+            : { from: "in", text: m.text, meta: 9 + ":0" + (4 + i) + " PM" });
+          const showChip = !!v.chip && src.length >= 2 && out(src[src.length - 1]);
+          const ph = !!v.phone;
+
+          /* ---- geometry: where the thread lives, per format ---- */
+          const availW = W - safe.left - safe.right, availH = H - safe.top - safe.bottom;
+          const SX = 837 / 393; /* phone photo px per screen px */
+          const VIS = HF.pick({ "16x9": 470, "9x16": 400, "1x1": 430, "4x5": 450, def: 450 }); /* visible screen px of thread body in phone mode */
+          const THR_TOP = 70, HEAD = 68;
+          const TH_H = ph ? 852 - THR_TOP - 14 : 0;
+          let card, thread;
+          const mount = document.createElement("div");
+          mount.id = ID + "-mount"; stage.appendChild(mount);
+          const opts = { name: lead.name, face: lead.face, channel: chan, phone: "+1 (555) 01" + (lead.id.length * 7 + 20), messages: msgs, ai: true, composer: true };
+          let phoneApi = null;
+          if (ph) {
+            const scr = RU.screen.thread({ ...opts });
+            thread = scr.querySelector(".ru-thread");
+            Object.assign(thread.style, { height: 852 - THR_TOP - 16 + "px", width: "365px" });
+            /* the thread top sits at safe.top, but never so high that the phone top bezel leaves the frame */
+            let sc = 0.7, top = safe.top;
+            for (let k = 0; k < 4; k++) {
+              top = Math.max(safe.top, 30 + (41 + THR_TOP * SX) * sc);
+              sc = Math.min((H - safe.bottom - top) / ((HEAD + VIS) * SX), (W - 40) / 925, 0.97);
+            }
+            const phCx = W / 2, screenTop = top - THR_TOP * SX * sc;
+            const phCy = screenTop - 41 * sc + (1868 / 2) * sc;
+            phoneApi = HF.phone(mount, { content: scr, x: phCx, y: phCy, scale: sc, glow: "color-mix(in srgb, var(--glow-5) 55%, transparent)", shadow: "float" });
+            card = phoneApi.el;
+          } else {
+            const flatW = HF.land ? 560 : 365;
+            const s = Math.min(availW / flatW, availH / (HF.land ? 470 : 440));
+            card = document.createElement("div"); card.id = ID + "-card";
+            thread = RU.thread(opts);
+            Object.assign(thread.style, { height: Math.round(availH / s) + "px", width: flatW + "px" });
+            card.appendChild(thread);
+            const skin = document.createElement("div"); skin.className = ID + "-skin"; card.appendChild(skin);
+            mount.appendChild(card);
+            const cw = flatW * s;
+            Object.assign(card.style, { left: Math.round(safe.left + (availW - cw) / 2) + "px", top: safe.top + "px", transform: "scale(" + s + ")", boxShadow: "0 40px 90px rgba(0,0,0,.55), 0 10px 24px rgba(0,0,0,.4)" });
+          }
+          /* scroll window: .bd becomes a clipped viewport with an inner column */
+          const bd = thread.querySelector(".bd");
+          const col = document.createElement("div");
+          while (bd.firstChild) col.appendChild(bd.firstChild);
+          col.style.position = "relative"; col.id = ID + "-col";
+          bd.appendChild(col); bd.style.overflow = "hidden";
+          const els = Array.from(col.querySelectorAll(".ru-msg"));
+          if (showChip) {
+            const c = document.createElement("div"); c.className = ID + "-chip"; c.id = ID + "-chip";
+            c.innerHTML = '<span class="tk">' + RU.icons.check(B.app.ground, 15) + "</span><span>" + String(v.chipText).replace(/&/g, "&amp;").replace(/</g, "&lt;") + ' <small>' + B.cast.listing.address + "</small></span>";
+            col.appendChild(c);
+          }
+          const chipEl = document.getElementById(ID + "-chip");
+          const bdH = bd.clientHeight;
+          const limit = ph ? VIS - 6 : bdH - 8;
+
+          const tl = gsap.timeline({ paused: true });
+          /* ---- entrance of the whole object ---- */
+          if (ph) {
+            tl.fromTo(card, { y: 140, opacity: 0, rotationX: 8, rotationY: -10 }, { y: 0, opacity: 1, rotationX: 0, rotationY: -4, duration: 1.1, ease: "power4.out" }, 0);
+            tl.to(card, { rotationY: 3, duration: 8, ease: "sine.inOut" }, 1.1);
+            phoneApi.sweep(tl, 0.9, 1.8);
+          } else {
+            tl.fromTo(card, { y: 90, opacity: 0, filter: "blur(12px)" }, { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.8, ease: "expo.out" }, 0);
+          }
+          const accent = B.app.accent, hair = B.app.hair;
+          /* scroll is a pure function of the per-message progress values; targets are measured live so font loading cannot desync it */
+          const prog = {}, scrollEl = col;
+          els.forEach((_, k) => { prog[k] = 0; });
+          const needOf = (k) => (k === els.length - 1 && chipEl ? chipEl.offsetTop + chipEl.offsetHeight + 12 : els[k].offsetTop + els[k].offsetHeight + 10) - limit;
+          const apply = () => {
+            let base = 0, y = 0;
+            for (let k = 0; k < els.length; k++) {
+              if (prog[k] <= 0) break;
+              const nk = Math.max(base, needOf(k));
+              y = base + (nk - base) * prog[k]; base = nk;
+            }
+            scrollEl.style.transform = "translateY(" + (-y).toFixed(2) + "px)";
+          };
+          const reveal = (e, k, t, fromX) => {
+            const b = e.querySelector(".ru-b"), meta = e.querySelector(".ru-meta"), cool = getComputedStyle(b).borderTopColor;
+            tl.fromTo(b, { opacity: 0, x: fromX }, { opacity: 1, x: 0, duration: 0.45, ease: "expo.out" }, t);
+            tl.fromTo(b, { scale: 0.94, transformOrigin: fromX > 0 ? "100% 100%" : "0% 100%" }, { scale: 1, duration: 0.7, ease: "back.out(1.7)" }, t);
+            tl.fromTo(b, { borderColor: accent }, { borderColor: e.classList.contains("out") ? hair : cool, duration: 1.0, ease: "power2.out" }, t + 0.05);
+            if (meta) tl.fromTo(meta, { opacity: 0, y: 5 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, t + 0.3);
+            tl.fromTo(prog, { [k]: 0 }, { [k]: 1, duration: 0.55, ease: "power3.out", onUpdate: apply, immediateRender: false }, t);
+          };
+          els.forEach((e) => { gsap.set(e.querySelector(".ru-b"), { opacity: 0 }); const m = e.querySelector(".ru-meta"); if (m) gsap.set(m, { opacity: 0 }); });
+          let t = ph ? 0.75 : 0.5;
+          const typ = Math.min(1, Math.max(0.6, +v.typing));
+          src.forEach((m, i) => {
+            const e = els[i];
+            if (!out(m)) { reveal(e, i, t, -70); t += 0.5; return; }
+            /* typing dots live inside the reply's slot, bottom-right, so they sit exactly where the bubble lands */
+            const d = document.createElement("div"); d.className = ID + "-dots"; d.innerHTML = '<span class="ru-typing"><i></i><i></i><i></i></span>';
+            Object.assign(d.style, { right: "0px", top: "0px" });
+            e.style.position = "relative"; e.appendChild(d);
+            tl.fromTo(d, { opacity: 0, scale: 0.5, transformOrigin: "100% 0%" }, { opacity: 1, scale: 1, duration: 0.25, ease: "back.out(1.7)" }, t);
+            const bounces = Math.max(1, Math.round(typ / 0.28));
+            tl.fromTo(d.querySelectorAll("i"), { y: 0 }, { y: -5, duration: 0.14, ease: "sine.inOut", yoyo: true, repeat: bounces * 2 - 1, stagger: 0.07 }, t + 0.05);
+            tl.to(d, { opacity: 0, scale: 0.8, duration: 0.14, ease: "power2.in" }, t + typ - 0.1);
+            reveal(e, i, t + typ, 70);
+            t += typ + (i === src.length - 1 ? 0.95 : 0.2 + Math.min(1.3, 0.6 + m.text.length * 0.004));
+          });
+          let end = t;
+          if (chipEl) {
+            end = t;
+            tl.fromTo(chipEl, { opacity: 0, scale: 0.86, y: 18 }, { opacity: 1, scale: 1, y: 0, duration: 0.55, ease: "back.out(1.6)" }, end);
+            tl.fromTo(chipEl.querySelector(".tk"), { scale: 0 }, { scale: 1, duration: 0.35, ease: "back.out(2)" }, end + 0.12);
+            end += 1.5;
+          } else end += 0.9;
+          /* slow continuous drift over the whole scene */
+          /* vertical formats drift from the safe top so nothing creeps into the unsafe bands */
+          const dr = HF.land ? { s: 1.045, y: -16, o: "50% 50%" } : { s: 1.02, y: 0, o: "50% " + safe.top + "px" };
+          gsap.set("#" + ID + "-drift", { transformOrigin: dr.o });
+          tl.fromTo("#" + ID + "-drift", { scale: 1.0, y: 0 }, { scale: dr.s, y: dr.y, duration: end + 0.6, ease: "sine.out" }, 0);
+          if (v.fadeOut) tl.fromTo("#" + ID + "-drift", { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(10px)", duration: 0.55, ease: "power2.in" }, end);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,144 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"label","type":"string","label":"Concrete label above the number","default":"Texts answered tonight"},
+  {"id":"from","type":"number","label":"Count starts at","default":0},
+  {"id":"to","type":"number","label":"Count ends at","default":22},
+  {"id":"suffix","type":"string","label":"Appended to the number (for example k or %)","default":""},
+  {"id":"unit","type":"string","label":"Small text after the number","default":"of 22"},
+  {"id":"fadeOut","type":"boolean","label":"Blur out at the end","default":false}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-display); }
+        #__ID__-cam { position: absolute; inset: 0; }
+        #__ID__-lines { position: absolute; inset: 0; overflow: visible; }
+        #__ID__-pillwrap { position: absolute; left: 0; width: 100%; }
+        #__ID__-cap { position: absolute; top: 0; border-radius: 999px; overflow: hidden;
+          backdrop-filter: blur(20px) saturate(1.4) brightness(1.1); -webkit-backdrop-filter: blur(20px) saturate(1.4) brightness(1.1);
+          background: linear-gradient(90deg, color-mix(in srgb, var(--accent-deep) 78%, transparent) 0%, color-mix(in srgb, var(--accent-deep) 55%, transparent) 45%, color-mix(in srgb, var(--accent) 40%, transparent) 82%, color-mix(in srgb, var(--accent-lift) 50%, transparent) 100%);
+          box-shadow: 0 30px 80px rgba(0,0,0,.4), 0 8px 18px rgba(0,0,0,.3); }
+        #__ID__-refr { position: absolute; left: 0; right: 0; bottom: -35%; height: 95%; filter: blur(26px) brightness(1.1);
+          background: radial-gradient(60% 100% at 88% 70%, color-mix(in srgb, var(--glow-7) 70%, transparent), color-mix(in srgb, var(--glow-5) 40%, transparent) 55%, transparent 80%), radial-gradient(70% 100% at 55% 85%, color-mix(in srgb, var(--glow-4) 50%, transparent), transparent 75%); }
+        #__ID__-inner { position: absolute; inset: 0; border-radius: 999px;
+          background: linear-gradient(180deg, rgba(255,255,255,.12) 0%, rgba(255,255,255,.02) 38%, color-mix(in srgb, var(--glow-7) 14%, transparent) 100%);
+          box-shadow: inset 0 2px 0 rgba(255,255,255,.6), inset 0 -26px 44px color-mix(in srgb, var(--glow-6) 28%, transparent), inset 0 -3px 0 color-mix(in srgb, var(--glow-8) 80%, transparent); }
+        #__ID__-edge { position: absolute; inset: 0; border-radius: 999px; padding: 4px;
+          background: linear-gradient(155deg, rgba(255,255,255,.95), rgba(255,255,255,.3) 30%, rgba(255,255,255,.1) 62%, rgba(255,240,220,.85) 100%);
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        #__ID__-hi { position: absolute; top: 3.5%; height: 3%; border-radius: 7px; right: 4%; width: 40%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.8) 60%, rgba(255,255,255,.2)); filter: blur(1.2px); }
+        #__ID__-sheen { position: absolute; top: -25%; bottom: -25%; left: 0; width: 22%; opacity: 0; filter: blur(14px); transform: skewX(-22deg);
+          background: linear-gradient(100deg, rgba(255,255,255,0), rgba(255,255,255,.85) 50%, rgba(255,255,255,0)); }
+        #__ID__-num { position: absolute; white-space: nowrap; text-align: right; color: #fff; font-weight: 500; letter-spacing: var(--track-display); font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; line-height: 1;
+          text-shadow: 0 0 28px color-mix(in srgb, var(--glow-7) 50%, transparent), 0 3px 14px rgba(0,0,0,.3); }
+        #__ID__-num small { font-size: .38em; font-weight: 500; opacity: .85; margin-left: .22em; letter-spacing: var(--track-ui); font-family: var(--font-ui); }
+        #__ID__-label { position: absolute; white-space: nowrap; text-align: right; font-weight: 500; color: rgba(255,255,255,.9); letter-spacing: -0.01em;
+          text-shadow: 0 0 20px color-mix(in srgb, var(--glow-6) 55%, transparent), 0 2px 8px rgba(0,0,0,.35); }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <svg width="0" height="0" style="position:absolute"><filter id="__ID__-mb" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur id="__ID__-mbb" stdDeviation="0 0"/></filter></svg>
+        <div id="__ID__-cam">
+          <svg id="__ID__-lines"></svg>
+          <div id="__ID__-pillwrap">
+            <div id="__ID__-label"></div>
+            <div id="__ID__-cap">
+              <div id="__ID__-refr"></div><div id="__ID__-inner"></div><div id="__ID__-hi"></div><div id="__ID__-edge"></div><div id="__ID__-sheen"></div>
+            </div>
+            <div id="__ID__-num"></div>
+          </div>
+        </div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__", NS = "http://www.w3.org/2000/svg";
+          const $ = (s) => document.getElementById(ID + "-" + s);
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe;
+          const v = window.__hyperframes.getVariables();
+          const FROM = +v.from, TO = +v.to, SUF = String(v.suffix || ""), UNIT = String(v.unit || "");
+          const land = W > H * 1.4, sc = Math.min(W, H) / 1080;
+          // geometry: capsule runs in from beyond the left edge; its right end grows with the count
+          const HP = land ? 270 : (H > W * 1.4 ? 320 : 270);
+          const X0 = safe.left + HP * 1.25, X1 = W - safe.right;
+          const cy = safe.top + (H - safe.top - safe.bottom) / 2;
+          const top = Math.round(cy - HP / 2), PAD = HP * 0.34;
+          const wrap = $("pillwrap"), cap = $("cap"), num = $("num"), label = $("label");
+          Object.assign(wrap.style, { top: top + "px", height: HP + "px" });
+          Object.assign(cap.style, { left: -HP * 2 + "px", height: HP + "px", width: "10px" });
+          const FN = Math.round(HP * 0.5), FL = Math.round(HP * (land ? 0.17 : 0.16));
+          Object.assign(num.style, { top: "0px", height: HP + "px", lineHeight: HP + "px", fontSize: FN + "px", width: "900px" });
+          Object.assign(label.style, { top: -FL * 1.75 + "px", fontSize: FL + "px", width: "1200px" });
+          label.textContent = String(v.label);
+          $("hi").style.right = "6%";
+
+          // contour sheaf: thin lines (no full-frame light); a soft band only near the lines
+          const svg = $("lines");
+          svg.setAttribute("width", W); svg.setAttribute("height", H); svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+          const mk = (t, a) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); return e; };
+          const N = 13, sx = W / 1920, sy = H / 1080;
+          const P = (i) => { const dx = -i * 17 * sx, dy = -i * 36 * sc; return [-100 * sx + dx, H * 1.45 + dy, W * 0.42 + dx, H * 1.22 + dy, W * 0.76 + dx * 0.4, H * 0.8 + dy * 0.9, W * 1.12, H * (land ? 0.56 : 0.62) + dy * 0.7]; };
+          const curve = (i) => { const q = P(i); return "M" + q[0] + " " + q[1] + " C" + q.slice(2, 4).join(" ") + " " + q.slice(4, 6).join(" ") + " " + q.slice(6, 8).join(" "); };
+          const a = P(0), b = P(N - 1);
+          const bandD = "M" + a[0] + " " + a[1] + " C" + a[2] + " " + a[3] + " " + a[4] + " " + a[5] + " " + a[6] + " " + a[7] + " L" + b[6] + " " + b[7] + " C" + b[4] + " " + b[5] + " " + b[2] + " " + b[3] + " " + b[0] + " " + b[1] + " Z";
+          const defs = mk("defs", {});
+          const g = (n) => getComputedStyle(root).getPropertyValue("--glow-" + n).trim() || B.palette.glowRamp[n];
+          defs.innerHTML =
+            '<linearGradient id="' + ID + '-g" gradientUnits="userSpaceOnUse" x1="' + W * 0.72 + '" y1="' + H + '" x2="' + W * 0.6 + '" y2="' + H * 0.5 + '">' +
+            '<stop offset="0" stop-color="' + B.palette.glowRamp[6] + '"/><stop offset=".45" stop-color="' + B.palette.glowRamp[5] + '"/><stop offset=".8" stop-color="' + B.palette.glowRamp[4] + '"/><stop offset="1" stop-color="' + B.palette.glowRamp[3] + '"/></linearGradient>' +
+            '<filter id="' + ID + '-soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="' + 30 * sc + '"/></filter>' +
+            '<filter id="' + ID + '-mblur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="' + 70 * sc + '"/></filter>';
+          svg.appendChild(defs);
+          const cp = P(6);
+          const mask = mk("mask", { id: ID + "-m", maskUnits: "userSpaceOnUse", x: -W * 0.2, y: -H * 0.3, width: W * 1.6, height: H * 1.8 });
+          mask.appendChild(mk("path", { id: ID + "-mpath", d: "M" + (cp[0] - 80) + " " + (cp[1] + 60) + " C" + cp.slice(2, 4).join(" ") + " " + cp.slice(4, 6).join(" ") + " " + W * 1.2 + " " + cp[7], fill: "none", stroke: "#fff", "stroke-width": 420 * sc, filter: "url(#" + ID + "-mblur)", pathLength: "1", "stroke-dasharray": "1", "stroke-dashoffset": "1" }));
+          svg.appendChild(mask);
+          const G = mk("g", { mask: "url(#" + ID + "-m)" }); svg.appendChild(G);
+          G.appendChild(mk("path", { id: ID + "-bandglow", d: bandD, fill: "url(#" + ID + "-g)", filter: "url(#" + ID + "-soft)", opacity: "0" }));
+          const lg = mk("g", { id: ID + "-lg" }); G.appendChild(lg);
+          const lines = [];
+          for (let i = 0; i < N; i++) {
+            const p = mk("path", { d: curve(i), fill: "none", stroke: B.palette.glowRamp[7], "stroke-width": String((1.6 + (i % 3) * 0.3) * Math.max(1, sc)), "stroke-linecap": "round", pathLength: "1", "stroke-dasharray": "1", "stroke-dashoffset": "1", opacity: String(0.5 + 0.35 * ((i * 7) % 5) / 4) });
+            lg.appendChild(p); lines.push(p);
+          }
+
+          // ---- timeline ----
+          const tl = gsap.timeline({ paused: true });
+          const st = { u: 0 };
+          const fmtN = (x) => Math.round(x).toLocaleString("en-US");
+          const upd = () => {
+            const u = Math.max(st.u, 0), end = X0 + (X1 - X0) * u;
+            cap.style.width = (end + HP * 2) + "px";
+            num.style.left = (end - PAD - 900) + "px";
+            label.style.left = (end - PAD - 1200) + "px";
+            const sp = (1 - Math.cbrt(1 - Math.min(st.u, 0.999))); mbst.sp = 3 * (1 - sp) * (1 - sp) / 2.95 * (X1 - X0) / 110 * sc;
+            mbb.setAttribute("stdDeviation", Math.max(mbst.bx, mbst.sp).toFixed(2) + " 0");
+            num.innerHTML = fmtN(FROM + (TO - FROM) * u) + SUF + (UNIT ? "<small>" + UNIT + "</small>" : "");
+          };
+          const mbb = $("mbb"), mbst = { bx: 0, sp: 0 };
+          upd();
+          tl.fromTo(wrap, { x: -W * 0.4 }, { x: 0, duration: 0.7, ease: "power3.out" }, 0);
+          tl.fromTo(mbst, { bx: 26 * sc }, { bx: 0, duration: 0.7, ease: "power2.out", onUpdate: () => mbb.setAttribute("stdDeviation", Math.max(mbst.bx, mbst.sp).toFixed(2) + " 0") }, 0);
+          wrap.style.filter = "url(#" + ID + "-mb)";
+          tl.set(wrap, { filter: "none" }, 3.1);
+          tl.fromTo(st, { u: 0 }, { u: 1, duration: 2.95, ease: "power3.out", onUpdate: upd, immediateRender: false }, 0.15);
+          tl.fromTo([num, label], { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "power2.out" }, 0.25);
+          tl.fromTo(num, { filter: "blur(7px)" }, { filter: "blur(0px)", duration: 0.95, ease: "power2.out" }, 0.15);
+          tl.fromTo(label, { filter: "blur(10px)" }, { filter: "blur(0px)", duration: 0.5, ease: "power2.out" }, 0.25);
+          // contour sheaf draws in; the band stays local and capped
+          tl.fromTo($("mpath"), { attr: { "stroke-dashoffset": 1 } }, { attr: { "stroke-dashoffset": 0 }, duration: 1.9, ease: "power2.out", immediateRender: false }, 1.0);
+          lines.forEach((p, i) => tl.fromTo(p, { attr: { "stroke-dashoffset": 1 } }, { attr: { "stroke-dashoffset": 0 }, duration: 1.3, ease: "power2.out", immediateRender: false }, 1.05 + i * 0.05));
+          tl.fromTo($("bandglow"), { opacity: 0 }, { opacity: 0.4, duration: 1.2, ease: "power2.out", immediateRender: false }, 1.25);
+          tl.to($("bandglow"), { opacity: 0.55, duration: 1.4, ease: "power1.in" }, 2.45);
+          tl.fromTo($("lg"), { x: 0 }, { x: -50 * sx, duration: 2.3, ease: "sine.inOut", immediateRender: false }, 1.05);
+          tl.fromTo($("cam"), { scale: 1.0 }, { scale: 0.97, duration: 3.6, ease: "sine.out" }, 0);
+          // specular sweep when the count locks
+          tl.fromTo($("sheen"), { x: -HP * 2, opacity: 0 }, { x: (X1 + HP), keyframes: { opacity: [0, 0.9, 0.9, 0] }, duration: 0.45, ease: "power1.inOut" }, 3.0);
+          if (v.fadeOut) tl.to($("cam"), { opacity: 0, filter: "blur(14px)", duration: 0.4, ease: "power2.in" }, 3.3);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

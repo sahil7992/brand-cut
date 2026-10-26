@@ -1,0 +1,137 @@
+{
+  "$schema": "../../brand.schema.json",
+  "id": "supabase",
+  "name": "Supabase",
+  "pronunciation": "SOO-pah-base",
+  "tagline": "Build in a weekend. Scale to millions.",
+  "endline": "Build in a weekend. Scale to millions.",
+  "url": "supabase.com",
+  "category": "Open source Postgres development platform (unofficial sample; facts from supabase.com)",
+  "palettes": {
+    "default": "supabase",
+    "supabase": {
+      "bg": "#1C1C1C",
+      "bg2": "#171717",
+      "ink": "#EDEDED",
+      "inkSoft": "#C4C4C4",
+      "muted": "#8F8F8F",
+      "hair": "#2E2E2E",
+      "accent": "#3ECF8E",
+      "accentLift": "#7BE0B3",
+      "accentDeep": "#0F5A3A",
+      "paper": "#F5F5F5",
+      "onPaper": "#171717",
+      "brand": "#3ECF8E",
+      "brandLit": "#7BE0B3",
+      "brandDeep": "#0F5A3A",
+      "ok": "#3ECF8E",
+      "warn": "#F2C14E",
+      "info": "#7BE0B3",
+      "glowRamp": [
+        "#000000",
+        "#061A12",
+        "#0B3524",
+        "#0F5A3A",
+        "#1E9363",
+        "#3ECF8E",
+        "#7BE0B3",
+        "#BDF0D7",
+        "#EDFFF6"
+      ],
+      "glowCard": "#E6FBF1"
+    }
+  },
+  "app": {
+    "note": "Fictional app tokens.",
+    "ground": "#030A1F",
+    "rail": "#07112A",
+    "raised": "#0E1A3A",
+    "raised2": "#142246",
+    "hair": "#22305A",
+    "text": "#EEF3FF",
+    "textSoft": "#C9D5F2",
+    "muted": "#8393B8",
+    "faint": "#6A7AA0",
+    "accent": "#3D7BFF",
+    "accentLift": "#79A4FF",
+    "amber": "#F2C14E",
+    "green": "#36C99A",
+    "info": "#79A4FF",
+    "olive": "#B7C95A",
+    "solid": "#E8F0FF",
+    "onSolid": "#061233",
+    "brandLit": "#3D63D6",
+    "brandDeep": "#061233",
+    "radii": {
+      "sm": 10,
+      "md": 14,
+      "lg": 18,
+      "xl": 26
+    },
+    "trackingDisplay": "-0.01em",
+    "trackingUi": "0em",
+    "dim": "#56658A",
+    "hairSoft": "#15224A"
+  },
+  "fonts": {
+    "display": {
+      "family": "Inter",
+      "files": {},
+      "weight": 600,
+      "tracking": "-0.02em"
+    },
+    "ui": {
+      "family": "Source Code Pro",
+      "files": {},
+      "weight": 500,
+      "tracking": "0em"
+    },
+    "note": "Site CSS declares Inter, Manrope, Source Code Pro (verified in supabase.com CSS); Google Fonts used."
+  },
+  "logo": {
+    "tile": "assets/brand/tile.svg",
+    "mark": "assets/brand/mark.svg",
+    "wordmark": "assets/brand/wordmark.svg",
+    "wordmarkText": "Supabase",
+    "markColors": {
+      "green": "#3ECF8E"
+    },
+    "note": "Official SVG from github.com/supabase/supabase packages/common/assets/images (supabase-logo-wordmark--dark.svg, icon)"
+  },
+  "photos": {
+    "dir": "assets/photos",
+    "hero": ""
+  },
+  "footage": {},
+  "copy": {
+    "banned_words": [
+      "revolutionize",
+      "seamless",
+      "unleash"
+    ],
+    "case": "sentence",
+    "no_emoji": true,
+    "no_all_caps": true,
+    "banned_fonts": [
+      "Instrument Serif Italic"
+    ]
+  },
+  "design": {
+    "look": "Dark #1C1C1C ground, green #3ECF8E.",
+    "never": [
+      "ALL CAPS",
+      "emojis"
+    ]
+  },
+  "truths": {
+    "may_claim": [
+      "Every project is a dedicated Postgres database.",
+      "Auto-generated REST and GraphQL APIs, Table Editor, SQL Editor",
+      "Auth with 20+ social providers, email/password, phone/OTP, magic links",
+      "S3-compatible Storage with a global CDN",
+      "Edge Functions: TypeScript/Deno",
+      "Realtime: database changes, presence, broadcast"
+    ],
+    "source": "supabase.com home page"
+  }
+}

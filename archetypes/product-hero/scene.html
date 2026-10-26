@@ -1,0 +1,115 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"screen","type":"string","label":"BRAND.ui key shown on the phone (home, thread, ask, askOpen, showings, showingsMonth)","default":"home"},
+  {"id":"chips","type":"string","label":"Chip kinds, | separated, up to 4 (lead, slot, application, fee, pay)","default":"lead|slot|application|fee"},
+  {"id":"rack","type":"boolean","label":"Start out of focus and rack focus in 3 frames","default":true},
+  {"id":"fadeOut","type":"boolean","label":"Blur out at the end","default":true}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-ui); }
+        #__ID__-drift, #__ID__-cam { position: absolute; inset: 0; }
+        .__ID__-key { position: absolute; left: 4.6%; top: 2.1%; width: 90.8%; height: 95.8%; border-radius: 125px; overflow: hidden; pointer-events: none; }
+        .__ID__-key i { position: absolute; inset: 0; display: block; }
+        .__ID__-rim { position: absolute; right: 2.2%; top: 9%; width: 0.9%; height: 82%; border-radius: 50%; background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--accent-lift) 85%, #fff) 25%, color-mix(in srgb, var(--accent-lift) 70%, #fff) 70%, transparent); filter: blur(5px); opacity: .9; pointer-events: none; mix-blend-mode: screen; }
+        .__ID__-chip { position: absolute; left: 0; top: 0; }
+        .__ID__-chip > .__ID__-lab { font-family: var(--font-display); font-weight: 600; letter-spacing: var(--track-display); color: var(--ink); font-size: 34px; margin: 0 0 12px 6px; line-height: 1; white-space: nowrap; text-shadow: 0 4px 24px rgba(0,0,0,.5); }
+        .__ID__-chip > .__ID__-box { position: relative; transform-origin: 0 0; }
+        .__ID__-chip > .__ID__-box > .ru { box-shadow: 0 26px 60px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.14); }
+        .__ID__-sh { position: absolute; inset: 0; border-radius: 22px; pointer-events: none; background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,0) 40%); }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <div id="__ID__-drift"><div id="__ID__-cam"></div></div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe, RU = HF.realui, vert = H > W * 1.4;
+          const v = window.__hyperframes.getVariables();
+          const cam = document.getElementById(ID + "-cam");
+          const kinds = String(v.chips).split("|").map(s => s.trim()).filter(Boolean).slice(0, 4);
+          const cx = (safe.left + (W - safe.right)) / 2, cy = (safe.top + (H - safe.bottom)) / 2;
+          const PH = 1868;
+
+          /* per-format plan: phone scale at start / dolly peak / final, phone final position, chip width and slots (x,y = centre of the box under its label) */
+          const P = HF.pick({
+            "16x9": { s0: 0.30 * H / PH, s1: 0.75 * H / PH, s2: 0.60 * H / PH, px: 470, py: 540, cw: 450, slots: [[1010, 283], [1010, 500], [1480, 277], [1480, 485]] },
+            "9x16": { s0: 0.30 * H / PH, s1: 0.50 * H / PH, s2: 0.19, px: cx, py: 450, cw: 420, slots: [[cx - 218, 625], [cx + 218, 625], [cx - 218, 910], [cx + 218, 910]] },
+            "1x1":  { s0: 0.30 * H / PH, s1: 0.62 * H / PH, s2: 0.15, px: 540, py: 290, cw: 330, slots: [[365, 450], [715, 450], [365, 690], [715, 690]] },
+            "4x5":  { s0: 0.30 * H / PH, s1: 0.62 * H / PH, s2: 0.21, px: 540, py: 330, cw: 360, slots: [[350, 550], [730, 550], [350, 806], [730, 806]] },
+            def:    { s0: 0.30 * H / PH, s1: 0.75 * H / PH, s2: 0.60 * H / PH, px: 470, py: 540, cw: 450, slots: [[1010, 283], [1010, 500], [1480, 277], [1480, 485]] }
+          });
+          const lead = B.cast.leads[0], fee = B.story.sampleFee, L = B.cast.listing;
+          const LD = B.cast.leads, payerFace = B.faces[fee.payer.split(" ")[0].toLowerCase()] ? fee.payer.split(" ")[0].toLowerCase() : LD[0].face;
+          const KIND = {
+            lead: { label: "New lead", nw: 358, el: () => RU.notif({ name: lead.name, face: lead.face, channel: lead.channel, text: "Hi! Is " + L.address + " still available?", when: "now" }) },
+            slot: { label: "Showing booked", nw: 358, el: () => RU.nextShowing({ when: "Saturday", status: "Confirmed", name: lead.name.split(" ")[0], time: "11:00 AM", address: L.address }) },
+            application: { label: "Application signed", nw: 380, el: () => RU.application({ title: "Rental application", sub: "Sent for signature", via: "DocuSign", status: "Signed" }) },
+            fee: { label: "Fee paid", nw: 460, el: () => RU.receipt({ amount: fee.amount, status: "Paid", client: fee.payer, face: payerFace }) },
+            pay: { label: "Fee requested", nw: 460, el: () => RU.payRequest({ client: fee.payer, amount: String(fee.amount).replace("$", "") }) }
+          };
+
+          const tl = gsap.timeline({ paused: true });
+          /* ---- chips (built first so they sit under the phone in z) ---- */
+          const chips = kinds.map((k, i) => {
+            const d = KIND[k] || KIND.lead;
+            const wrap = document.createElement("div"); wrap.className = ID + "-chip";
+            wrap.setAttribute("data-layout-allow-overlap", ""); wrap.setAttribute("data-layout-allow-overflow", "");
+            const lab = document.createElement("div"); lab.className = ID + "-lab"; lab.textContent = d.label;
+            const box = document.createElement("div"); box.className = ID + "-box";
+            const el = d.el(); box.appendChild(el);
+            wrap.append(lab, box); cam.appendChild(wrap);
+            el.style.width = d.nw + "px";
+            const z = P.cw / d.nw, nh = el.offsetHeight;
+            box.style.zoom = z;
+            const bw = P.cw, bh = nh * z, lh = lab.offsetHeight + 12;
+            const sh = document.createElement("div"); sh.className = ID + "-sh"; box.appendChild(sh);
+            const [sx, sy] = P.slots[i];
+            const tx = sx - bw / 2, ty = sy;
+            lab.style.fontSize = (vert || P.cw < 400 ? 28 : 34) + "px";
+            return { wrap, tx, ty };
+          });
+
+          /* ---- the phone ---- */
+          const shot = document.createElement("img");
+          shot.src = B.ui[v.screen] || B.ui.home; shot.alt = "";
+          Object.assign(shot.style, { width: "393px", height: "852px", display: "block", objectFit: "cover" });
+          const ph = HF.phone(cam, { photo: "front", content: shot, x: cx, y: cy, scale: P.s0, glow: "color-mix(in srgb, var(--accent) 26%, transparent)", glowOpacity: 0.8, shadow: "float", reflect: 1.1 });
+          const key = document.createElement("div"); key.className = ID + "-key";
+          key.innerHTML = '<i style="background:linear-gradient(135deg, rgba(255,255,255,.20) 0%, rgba(255,255,255,.07) 20%, rgba(255,255,255,0) 44%)"></i><i style="background:linear-gradient(90deg, rgba(0,0,0,.22), rgba(0,0,0,0) 30%, rgba(0,0,0,0) 78%, color-mix(in srgb, var(--accent-lift) 16%, transparent))"></i>';
+          ph.body.appendChild(key);
+          const rim = document.createElement("div"); rim.className = ID + "-rim"; ph.body.appendChild(rim);
+
+          const RACK = !!v.rack;
+          const T1 = 0.5, DOLLY = 1.2, T2 = T1 + DOLLY + 0.2, MOVE = 0.8, END = 4.2;
+          /* rack focus: blurred small phone resolves in 3 frames (0.1 s) */
+          gsap.set(ph.el, { rotationY: -26, rotationX: 5, x: 0, y: 0 });
+          if (RACK) { gsap.set(ph.el, { filter: "blur(12px)" }); tl.fromTo(ph.el, { filter: "blur(12px)" }, { filter: "blur(0px)", duration: 0.1, ease: "none" }, 0.32); }
+          tl.fromTo(ph.el, { rotationY: -26 }, { rotationY: -21, duration: T1, ease: "sine.out" }, 0);
+          /* dolly in: scale and position on one expo.inOut, rotateY settles on its own ease */
+          tl.fromTo(ph.el, { scale: P.s0 }, { scale: P.s1, duration: DOLLY, ease: "expo.inOut" }, T1);
+          tl.fromTo(ph.el, { rotationY: -21 }, { rotationY: -9, duration: DOLLY + 0.5, ease: "power4.out", immediateRender: false }, T1);
+          tl.fromTo(ph.el, { rotationX: 5 }, { rotationX: 0, duration: DOLLY + 0.5, ease: "power4.out", immediateRender: false }, T1);
+          ph.sweep(tl, T1 + 0.5, 1.6);
+          /* pull to its final place and let the chips burst out of it */
+          tl.to(ph.el, { scale: P.s2, x: P.px - cx, y: P.py - cy, duration: MOVE, ease: "expo.inOut", immediateRender: false }, T2);
+          tl.to(ph.el, { rotationY: -6, duration: MOVE + 0.4, ease: "power3.out", immediateRender: false }, T2);
+          chips.forEach((c, i) => {
+            const t0 = T2 + 0.25 + i * 0.14;
+            gsap.set(c.wrap, { x: P.px - 140, y: P.py - 120, scale: 0.25, opacity: 0, rotationY: 0 });
+            tl.fromTo(c.wrap, { x: P.px - 140, y: P.py - 120, scale: 0.25, opacity: 0, filter: "blur(10px)" }, { x: c.tx, y: c.ty, scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.7, ease: "expo.out" }, t0);
+            tl.to(c.wrap, { y: "+=" + (i % 2 ? 8 : -8), duration: END - t0 - 0.3, ease: "sine.inOut" }, t0 + 0.7);
+          });
+          /* slow drift across the whole scene, exit */
+          tl.fromTo("#" + ID + "-drift", { scale: 1.0 }, { scale: 1.045, duration: END + 0.4, ease: "sine.out" }, 0);
+          if (v.fadeOut) tl.to("#" + ID + "-drift", { opacity: 0, filter: "blur(10px)", duration: 0.4, ease: "power2.in", immediateRender: false }, END);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

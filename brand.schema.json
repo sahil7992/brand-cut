@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "brandcut brand kit",
+  "type": "object",
+  "required": ["id", "name", "tagline", "palettes", "fonts", "logo", "cast", "story", "truths", "voice", "copy"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "name": { "type": "string" },
+    "pronunciation": { "type": "string" },
+    "tagline": { "type": "string" },
+    "endline": { "type": "string" },
+    "url": { "type": "string" },
+    "palettes": {
+      "type": "object", "required": ["default"],
+      "properties": { "default": { "type": "string" } },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["bg", "ink", "accent", "accentLift", "accentDeep", "paper", "onPaper", "brand", "glowRamp"],
+        "properties": { "glowRamp": { "type": "array", "items": { "type": "string" }, "minItems": 9, "maxItems": 9 } }
+      }
+    },
+    "app": { "type": "object", "description": "Real product UI tokens used inside recreated UI (exported as --app-*)." },
+    "fonts": {
+      "type": "object", "required": ["display", "ui"],
+      "additionalProperties": { "type": "object", "required": ["family", "files"], "properties": { "family": { "type": "string" }, "files": { "type": "object" }, "weight": { "type": "number" }, "tracking": { "type": "string" } } }
+    },
+    "logo": { "type": "object", "required": ["tile", "mark", "wordmarkText"] },
+    "partners": { "type": "object", "additionalProperties": { "type": "string" } },
+    "ui": { "type": "object" },
+    "phone": { "type": "object", "properties": { "frame": { "type": "string" }, "rect": { "type": "string" } } },
+    "faces": { "type": "object", "description": "id -> licence-safe portrait path; never generated locally" },
+    "photos": { "type": "object" },
+    "footage": { "type": "object" },
+    "cast": { "type": "object", "required": ["leads"], "description": "Fictional people only." },
+    "story": { "type": "object", "required": ["beats", "sampleThread", "sampleAsk"] },
+    "truths": { "type": "object", "required": ["may_claim", "never_claim"] },
+    "voice": { "type": "object", "required": ["model", "speed"] },
+    "copy": { "type": "object", "required": ["banned_words"] },
+    "design": { "type": "object" }
+  }
+}

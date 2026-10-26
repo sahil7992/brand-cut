@@ -1,0 +1,255 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"chaosLines","type":"string","label":"Message chips, | separated, each kind~name~text (kinds: sms, whatsapp, missed, calendar). Empty = built from the brand cast. The first N become the wired nodes, the rest are background noise.","default":""},
+  {"id":"nodes","type":"number","label":"How many chips get a wire and become nodes","default":4,"min":2,"max":6,"step":1},
+  {"id":"fadeOut","type":"boolean","label":"Blur out at the end (off = hand off the ordered network)","default":true}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-display); }
+        #__ID__-drift, #__ID__-cam { position: absolute; inset: 0; }
+        .__ID__-chip { position: absolute; left: 0; top: 0; width: 366px; opacity: 0; will-change: transform, filter; transform-origin: 50% 50%; }
+        .__ID__-chip .ru-notif { width: 366px; height: 112px; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,.35), 0 18px 40px rgba(0,0,0,.45), 0 44px 90px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.14); }
+        .__ID__-badge { flex: none; width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative;
+          background: linear-gradient(160deg, color-mix(in srgb, var(--app-raised2) 90%, #fff 10%), var(--app-raised)); box-shadow: 0 0 0 1px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.12); }
+        .__ID__-chan { position: absolute; left: 30px; top: 30px; width: 20px; height: 20px; border-radius: 50%; background: #0d0d0d; padding: 3px; box-shadow: 0 0 0 1.5px rgba(44,44,46,.95); }
+        .__ID__-chan img { width: 100%; height: 100%; display: block; }
+        .__ID__-stamp { position: absolute; left: 6px; opacity: 0; font-family: var(--font-ui); font-size: 15px; font-weight: 600; color: var(--app-green); display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+        #__ID__-wires { position: absolute; inset: 0; z-index: 12; overflow: visible; }
+        #__ID__-wires path { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+        .__ID__-dot { position: absolute; left: 0; top: 0; width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ink) 18%, transparent); z-index: 13; opacity: 0; }
+        #__ID__-hub { position: absolute; left: 0; top: 0; z-index: 15; opacity: 0; will-change: transform; }
+        .__ID__-plate { position: absolute; inset: 0; border-radius: 30%; overflow: hidden;
+          background: linear-gradient(150deg, rgba(255,255,255,.26), rgba(255,255,255,.06) 55%, rgba(255,255,255,.12)), color-mix(in srgb, var(--accent-deep) 55%, transparent);
+          backdrop-filter: blur(24px) saturate(1.5) brightness(1.15); -webkit-backdrop-filter: blur(24px) saturate(1.5) brightness(1.15);
+          box-shadow: inset 0 1.5px 0 rgba(255,255,255,.65), inset 0 -14px 30px rgba(0,0,0,.28), 0 0 130px color-mix(in srgb, var(--accent) 42%, transparent), 0 0 46px color-mix(in srgb, var(--accent-lift) 30%, transparent), 0 34px 80px rgba(0,0,0,.55); }
+        .__ID__-edge { position: absolute; inset: 0; border-radius: 30%; padding: 2.5px; pointer-events: none;
+          background: linear-gradient(155deg, rgba(255,255,255,.95), rgba(255,255,255,.16) 35%, rgba(255,255,255,.1) 65%, rgba(255,255,255,.5));
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        .__ID__-tile { position: absolute; left: 14%; top: 14%; width: 72%; height: 72%; border-radius: 22.5%; display: block; box-shadow: 0 12px 26px rgba(0,0,0,.45), 0 2px 5px rgba(0,0,0,.4); }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <div id="__ID__-drift"><div id="__ID__-cam">
+          <svg id="__ID__-wires" viewBox="0 0 1920 1080" width="1920" height="1080"></svg>
+          <div id="__ID__-hub"><div class="__ID__-plate"></div><div class="__ID__-edge"></div><img class="__ID__-tile" alt=""></div>
+        </div></div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe, RU = window.HF.realui;
+          const v = window.__hyperframes.getVariables();
+          const land = W > H;
+          const cam = document.getElementById(ID + "-cam");
+          const svg = document.getElementById(ID + "-wires");
+          svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("width", W); svg.setAttribute("height", H);
+          const rnd = HF.rng(12);
+          const ease = n => gsap.parseEase(n);
+          const E3o = ease("power3.out"), E4o = ease("power4.out"), E2o = ease("power2.out"), E2i = ease("power2.in"), EB = ease("back.out(1.6)");
+          const R = (x, a, b) => Math.min(1, Math.max(0, (x - a) / (b - a)));
+          const lerp = (a, b, k) => a + (b - a) * k;
+
+          // content ------------------------------------------------------------
+          const leads = B.cast.leads, addr = B.cast.listing.address;
+          const L = i => leads[i % leads.length];
+          const defaults = [
+            ["missed", L(0).name, "Missed call"], ["whatsapp", L(1).name, "Can I see " + addr + " on Saturday?"],
+            ["sms", L(2).name, "Is " + addr + " still available?"], ["calendar", "Calendar", "Saturday 11:00 AM: two showings overlap"],
+            ["sms", L(3).name, "Do you allow dogs?"], ["whatsapp", L(0).name, "Hello? Is anyone there?"],
+            ["missed", "Unknown caller", "Missed call"], ["sms", L(1).name, "What is the parking situation?"],
+            ["calendar", "Calendar", "Showing at 2:00 PM needs a reply"], ["whatsapp", L(3).name, "Can we do Sunday instead?"]
+          ];
+          const items = String(v.chaosLines || "").trim()
+            ? String(v.chaosLines).split("|").map(s => s.split("~").map(x => x.trim()))
+            : defaults;
+          const whens = ["now", "2m ago", "now", "9m ago", "now", "4m ago", "12m ago", "now", "20m ago", "now"];
+          const rn = (B.cast.realtor && B.cast.realtor.name) || "the realtor";
+          const stampOf = { sms: "Answered by " + B.name + " in 9s", whatsapp: "Answered by " + B.name + " in 9s", missed: rn + " calls back", calendar: rn + " picks the time" };
+          const nodesN = Math.max(2, Math.min(items.length, +v.nodes || 4));
+          const ink = B.palette.ink, warn = B.palette.warn || "#E5B568";
+
+          // layout -------------------------------------------------------------
+          const hubD = land ? 210 : (H / W > 1.5 ? 176 : 156);
+          // the slow scene drift (scale 1.045, y -14) is still running at the end, so lay the final network out in pre-drift coordinates
+          const DS = 1.045, DY = 14;
+          const sl = W / 2 + (safe.left - W / 2) / DS, sr = W / 2 + (W - safe.right - W / 2) / DS;
+          const U = (H - safe.top - safe.bottom) / DS - 8;
+          const rows = land ? Math.ceil(nodesN / 2) : nodesN;
+          const zNode = land ? 1.42 : Math.min(1.58, (sr - sl - hubD - 90) / 366, (U - 26 * (rows - 1) - 70) / (146 * rows));
+          const SHIFT = 25 * zNode; // the stamp hangs below the last chip, so the chips sit this much above the group centre
+          const hubC = { x: W / 2, y: H / 2 + ((safe.top + H - safe.bottom) / 2 + DY - H / 2) / DS - SHIFT };
+          const pitch = land ? 250 : Math.min(260, (U - 12 - 146 * zNode) / Math.max(1, rows - 1));
+          if (!land) hubC.x = sl + hubD / 2 + 4;
+          const colX = land ? [safe.left + 366 * zNode / 2, W - safe.right - 366 * zNode / 2] : [sr - 366 * zNode / 2];
+          const nodeAt = j => {
+            if (land) return { x: colX[j % 2], y: hubC.y + (Math.floor(j / 2) - (rows - 1) / 2) * pitch };
+            return { x: colX[0], y: hubC.y + (j - (rows - 1) / 2) * pitch };
+          };
+
+          // hub ----------------------------------------------------------------
+          const hub = document.getElementById(ID + "-hub");
+          hub.style.width = hub.style.height = hubD + "px";
+          hub.style.left = (hubC.x - hubD / 2) + "px"; hub.style.top = (hubC.y - hubD / 2) + "px";
+          hub.querySelector("img").src = B.logo.tile;
+
+          // chips --------------------------------------------------------------
+          const DEPTH = { wired: [2, 1, 2, 1, 2, 1], filler: [0, 0, 1, 0, 1, 0, 0, 1, 0] };
+          const SCALE = [0.74, 0.98, 1.2], BLUR = [6, 2.2, 0], ZI = [3, 10, 20], ALPHA = [0.6, 0.9, 1];
+          const zc = zNode * 0.92;
+          const chips = items.map((it, i) => {
+            const [kind, name, text] = it;
+            const wired = i < nodesN;
+            const depth = wired ? DEPTH.wired[i % 6] : DEPTH.filler[(i - nodesN) % 9];
+            const person = kind === "sms" || kind === "whatsapp";
+            const lead = leads.find(l => l.name === name);
+            const el = RU.notif({ name, face: lead ? lead.face : undefined, channel: kind === "sms" ? "SMS" : kind === "whatsapp" ? "WhatsApp" : kind === "missed" ? "Phone" : "Calendar", text, when: whens[i % whens.length] });
+            const wrap = document.createElement("div");
+            wrap.className = ID + "-chip"; wrap.id = ID + "-c" + i;
+            wrap.appendChild(el);
+            if (!person) {
+              const av = el.querySelector(".ru-av");
+              const b = document.createElement("div"); b.className = ID + "-badge";
+              b.innerHTML = kind === "missed" ? RU.icons.phone(warn, 22) : RU.icons.cal(B.palette.info || "#4299DC", 22);
+              av.replaceWith(b);
+            } else if (kind === "whatsapp" && B.partners.whatsapp) {
+              const av = el.querySelector(".ru-av"); av.style.overflow = "visible"; av.style.position = "relative";
+              const c = document.createElement("div"); c.className = ID + "-chan"; c.innerHTML = '<img src="' + B.partners.whatsapp + '" alt="">'; av.appendChild(c);
+            }
+            let stamp = null;
+            if (wired) {
+              stamp = document.createElement("div"); stamp.className = ID + "-stamp"; if (!land) { stamp.style.left = "auto"; stamp.style.right = "6px"; }
+              stamp.innerHTML = RU.icons.check("var(--app-green)", 16) + "<span>" + (stampOf[kind] || "Answered by " + B.name + " in 9s") + "</span>";
+              wrap.appendChild(stamp);
+            }
+            cam.appendChild(wrap);
+            wrap.style.zIndex = ZI[depth] + (wired ? 1 : 0);
+            return { i, kind, wired, depth, wrap, stamp, nw: 366, nh: 112 };
+          });
+          chips.forEach(c => {
+            c.wrap.style.left = (-c.nw / 2) + "px"; c.wrap.style.top = (-c.nh / 2) + "px";
+            if (c.stamp) c.stamp.style.top = (c.nh + 12) + "px";
+          });
+          const hubRect = { x0: hubC.x - hubD / 2 - 40, x1: hubC.x + hubD / 2 + 40, y0: hubC.y - hubD / 2 - 40, y1: hubC.y + hubD / 2 + 40 };
+          const placed = [];
+          const ov = (a, b) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+          chips.slice().sort((a, b) => (b.wired - a.wired) || (b.depth - a.depth)).forEach(c => {
+            c.s = zc * SCALE[c.depth];
+            const hw = c.nw * c.s / 2, hh = c.nh * c.s / 2;
+            const mx = land ? 60 : safe.left, mxr = land ? 60 : safe.right;
+            let x0 = mx + hw, x1 = W - mxr - hw;
+            if (land && c.wired) { if (c.i % 2 === 0) x1 = hubC.x - 30; else x0 = hubC.x + 30; }
+            const y0 = safe.top + hh + 10, y1 = H - safe.bottom - hh - 40;
+            let best = null;
+            for (let k = 0; k < 60; k++) {
+              const p = { x: lerp(x0, x1, rnd()), y: lerp(y0, y1, rnd()) };
+              const r = { x0: p.x - hw, x1: p.x + hw, y0: p.y - hh, y1: p.y + hh };
+              let sc = ov(r, hubRect) * (c.depth === 2 ? 4 : 0.4);
+              placed.forEach(q => { sc += ov(r, q.r) * (q.depth >= c.depth ? 1 : 0.35) * (c.wired ? 1 : 0.5); });
+              if (!best || sc < best.sc) best = { sc, p, r };
+            }
+            c.pF = best.p; placed.push({ r: best.r, depth: c.depth });
+            const ang = rnd() * Math.PI * 2, mag = (60 + c.depth * 70) * (0.7 + rnd() * 0.6);
+            c.d = { x: Math.cos(ang) * mag * (land ? 1.4 : 0.8), y: Math.sin(ang) * mag * (land ? 0.8 : 1.3) };
+            c.rot0 = (rnd() - 0.5) * 11; c.bendA = (rnd() < 0.5 ? -1 : 1) * (60 + rnd() * 90); c.bendB = (rnd() < 0.5 ? -1 : 1) * (40 + rnd() * 70);
+            c.t0 = 0.05 + c.i * 0.075;
+          });
+          const wiredC = chips.filter(c => c.wired);
+          if (land) {
+            const byX = wiredC.slice().sort((a, b) => a.pF.x - b.pF.x), half = Math.floor(wiredC.length / 2);
+            [byX.slice(0, half || 1), byX.slice(half || 1)].forEach((side, k) => side.sort((a, b) => a.pF.y - b.pF.y).forEach((c, r) => { c.node = nodeAt(r * 2 + k); }));
+          } else wiredC.slice().sort((a, b) => a.pF.y - b.pF.y).forEach((c, r) => { c.node = nodeAt(r); });
+
+          // wires + dots -------------------------------------------------------
+          const NS = "http://www.w3.org/2000/svg";
+          const SEG = 44;
+          const T_W0 = 1.95, T_SNAP = 3.35, T_END = 6.0;
+          chips.filter(c => c.wired).forEach(c => {
+            const p = document.createElementNS(NS, "path");
+            p.setAttribute("pathLength", "1"); p.style.strokeDasharray = "1 1"; p.style.strokeDashoffset = "1";
+            svg.appendChild(p); c.path = p;
+            const d = document.createElement("div"); d.className = ID + "-dot"; cam.appendChild(d); c.dot = d;
+            c.ws = c.i === 0 ? T_W0 : T_W0 + 0.1 + (c.i - 1) * 0.066; c.wd = c.i === 0 ? 0.95 : 0.7;
+          });
+
+          const edge = (cx, cy, a, b, tx, ty) => {
+            const dx = tx - cx, dy = ty - cy, m = Math.hypot(dx, dy) || 1, ux = dx / m, uy = dy / m;
+            const t = Math.min(Math.abs(ux) > 1e-6 ? a / Math.abs(ux) : 1e9, Math.abs(uy) > 1e-6 ? b / Math.abs(uy) : 1e9);
+            return { x: cx + ux * t, y: cy + uy * t };
+          };
+
+          const state = { T: 0 };
+          const render = () => {
+            const T = state.T;
+            const hubS = T < 1.25 ? 0 : EB(R(T, 1.25, 1.8));
+            hub.style.opacity = R(T, 1.25, 1.45);
+            hub.style.transform = "scale(" + (0.0001 + hubS) + ")";
+            chips.forEach(c => {
+              const en = E2o(R(T, c.t0, c.t0 + 0.7));
+              const mv = E3o(R(T, 0, 2.0));
+              let x = c.pF.x + c.d.x * (1 - mv), y = c.pF.y + c.d.y * (1 - mv);
+              let s = c.s, rot = c.rot0 * (1 - 0.5 * mv), blur = BLUR[c.depth] * (1 + (1 - en) * 1.5), op = ALPHA[c.depth] * en, sp = 0;
+              if (c.wired) {
+                sp = E4o(R(T, T_SNAP + c.i * 0.05, T_SNAP + 1.0 + c.i * 0.05));
+                x = lerp(x, c.node.x, sp); y = lerp(y, c.node.y, sp); s = lerp(s, zNode, sp);
+                rot = rot * (1 - sp); blur = blur * (1 - sp); op = lerp(op, 1, sp) * en;
+              } else {
+                const gone = E2i(R(T, T_SNAP, T_SNAP + 0.75));
+                op *= 1 - gone; blur += 9 * gone; s *= 1 - 0.06 * gone;
+                x += c.d.x * -0.18 * gone; y += c.d.y * -0.18 * gone;
+              }
+              c.x = x; c.y = y; c.sc = s; c.sp = sp;
+              c.wrap.style.opacity = op.toFixed(3);
+              c.wrap.style.transform = "translate(" + x.toFixed(2) + "px," + y.toFixed(2) + "px) rotate(" + rot.toFixed(3) + "deg) scale(" + s.toFixed(4) + ")";
+              c.wrap.style.filter = blur > 0.05 ? "blur(" + blur.toFixed(2) + "px)" : "none";
+              if (c.stamp) {
+                const k = E3o(R(T, 4.15 + c.i * 0.12, 4.75 + c.i * 0.12));
+                c.stamp.style.opacity = k.toFixed(3); c.stamp.style.transform = "translateY(" + ((1 - k) * 10).toFixed(2) + "px)";
+              }
+              if (c.path) {
+                const pr = E2o(R(T, c.ws, c.ws + c.wd));
+                const hw = c.nw * s / 2, hh = c.nh * s / 2;
+                const sg = x > hubC.x ? 1 : -1;
+                const e1 = edge(x, y, hw, hh, hubC.x, hubC.y), e0 = edge(hubC.x, hubC.y, hubD * 0.47, hubD * 0.47, x, y);
+                const P1 = { x: lerp(e1.x, x - sg * hw, sp), y: lerp(e1.y, y, sp) };
+                const oy = Math.max(-hubD * 0.3, Math.min(hubD * 0.3, (y - hubC.y) * 0.2));
+                const P0 = { x: lerp(e0.x, hubC.x + sg * hubD * 0.49, sp), y: lerp(e0.y, hubC.y + oy, sp) };
+                const dx = P1.x - P0.x, dy = P1.y - P0.y, len = Math.hypot(dx, dy) || 1;
+                const dir = { x: dx / len, y: dy / len };
+                const mix = (a, b, k) => { const X = lerp(a.x, b.x, k), Y = lerp(a.y, b.y, k), m = Math.hypot(X, Y) || 1; return { x: X / m, y: Y / m }; };
+                const t0 = mix(dir, { x: sg, y: 0 }, sp), perp = { x: -dir.y, y: dir.x };
+                const o = 1 - sp, bA = c.bendA * o, bB = c.bendB * o;
+                const C1 = { x: P0.x + t0.x * len * 0.38 + perp.x * bA, y: P0.y + t0.y * len * 0.38 + perp.y * bA };
+                const C2 = { x: P1.x - t0.x * len * 0.38 + perp.x * bB, y: P1.y - t0.y * len * 0.38 + perp.y * bB };
+                let dstr = "";
+                for (let k = 0; k <= SEG; k++) {
+                  const u = k / SEG, m = 1 - u;
+                  let px = m * m * m * P0.x + 3 * m * m * u * C1.x + 3 * m * u * u * C2.x + u * u * u * P1.x;
+                  let py = m * m * m * P0.y + 3 * m * m * u * C1.y + 3 * m * u * u * C2.y + u * u * u * P1.y;
+                  if (c.i === 0) { const w = 52 * o * Math.exp(-3.6 * u) * Math.sin(Math.PI * 2 * 2.6 * u) * Math.sin(Math.PI * Math.min(1, u * 14)); px += perp.x * w; py += perp.y * w; }
+                  dstr += (k ? "L" : "M") + px.toFixed(1) + " " + py.toFixed(1);
+                }
+                c.path.setAttribute("d", dstr);
+                c.path.style.strokeDashoffset = (1 - pr).toFixed(4);
+                c.path.style.opacity = pr > 0.002 ? 0.9 : 0;
+                const dk = EB(R(T, T_SNAP + 0.55 + c.i * 0.07, T_SNAP + 0.95 + c.i * 0.07));
+                c.dot.style.left = P1.x.toFixed(1) + "px"; c.dot.style.top = P1.y.toFixed(1) + "px";
+                c.dot.style.opacity = Math.min(1, dk * 2).toFixed(3); c.dot.style.transform = "scale(" + Math.max(0.0001, dk).toFixed(3) + ")";
+              }
+            });
+          };
+
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo(state, { T: 0 }, { T: T_END, duration: T_END, ease: "none", onUpdate: render }, 0);
+          tl.fromTo("#" + ID + "-drift", { scale: 1.0, y: 0 }, { scale: 1.045, y: -14, duration: T_END, ease: "sine.out" }, 0);
+          if (v.fadeOut) tl.fromTo("#" + ID + "-drift", { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(10px)", duration: 0.55, ease: "power2.in" }, T_END - 0.55);
+          render();
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

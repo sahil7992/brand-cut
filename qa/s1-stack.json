@@ -1,0 +1,80 @@
+[
+ {
+  "t": 0.0,
+  "sound": "msg_pop_soft_a",
+  "gain_db": -8,
+  "note": "dot pops in"
+ },
+ {
+  "t": 0.7,
+  "sound": "msg_pop_soft_a",
+  "gain_db": -8,
+  "note": "pill New lead arrives"
+ },
+ {
+  "t": 0.82,
+  "sound": "ui_tap",
+  "gain_db": -11,
+  "note": "light sweep / icon on New lead"
+ },
+ {
+  "t": 2.2,
+  "sound": "msg_pop_soft_b",
+  "gain_db": -8,
+  "note": "pill Answered arrives"
+ },
+ {
+  "t": 2.32,
+  "sound": "ui_tap",
+  "gain_db": -11,
+  "note": "light sweep / icon on Answered"
+ },
+ {
+  "t": 3.7,
+  "sound": "msg_pop_soft_a",
+  "gain_db": -8,
+  "note": "pill Showing booked arrives"
+ },
+ {
+  "t": 3.82,
+  "sound": "ui_tap",
+  "gain_db": -11,
+  "note": "light sweep / icon on Showing booked"
+ },
+ {
+  "t": 5.2,
+  "sound": "msg_pop_soft_b",
+  "gain_db": -8,
+  "note": "pill Application signed arrives"
+ },
+ {
+  "t": 5.32,
+  "sound": "ui_tap",
+  "gain_db": -11,
+  "note": "light sweep / icon on Application signed"
+ },
+ {
+  "t": 6.7,
+  "sound": "msg_pop_soft_a",
+  "gain_db": -8,
+  "note": "pill Fee paid arrives"
+ },
+ {
+  "t": 6.82,
+  "sound": "ui_tap",
+  "gain_db": -11,
+  "note": "light sweep / icon on Fee paid"
+ },
+ {
+  "t": 10.8,
+  "sound": "whoosh_pull_reverse",
+  "gain_db": -9,
+  "note": "stack scrolls back"
+ },
+ {
+  "t": 11.5,
+  "sound": "ui_tap",
+  "gain_db": -8,
+  "note": "pill collapses to dot, loop tick"
+ }
+]

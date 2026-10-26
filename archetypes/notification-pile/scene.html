@@ -1,0 +1,122 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"count","type":"number","label":"How many notifications pile up","default":6,"min":3,"max":8,"step":1},
+  {"id":"messages","type":"string","label":"Notification texts, | separated (cycled if fewer than count)","default":"Is 14 Aspen Court still available?|Can I see it Saturday?|Do you allow dogs?|Is parking included?|Is the 6 pm slot open tomorrow?|What is the move-in date?|Any showings tonight?|Is the deposit negotiable?"},
+  {"id":"chipLabel","type":"string","label":"Count chip label","default":"new texts"},
+  {"id":"doneLabel","type":"string","label":"Count chip label once answered","default":"all answered"},
+  {"id":"plate","type":"string","label":"Footage plate path (copy the file into the film first)","default":"assets/footage/dinner-phone.mp4"},
+  {"id":"answer","type":"boolean","label":"Run the answered-tick phase","default":true},
+  {"id":"fadeOut","type":"boolean","label":"Blur out at the end","default":true}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-ui); background: #000; }
+        #__ID__-plate { position: absolute; inset: -4%; overflow: hidden; }
+        #__ID__-plate video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(0.7) saturate(1.05) contrast(1.04); }
+        #__ID__-shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,.30), rgba(0,0,0,.05) 40%, rgba(0,0,0,.35)); }
+        #__ID__-drift, #__ID__-ui { position: absolute; inset: 0; }
+        .__ID__-n { position: absolute; left: 0; top: 0; filter: drop-shadow(0 18px 26px rgba(0,0,0,.45)); }
+        .__ID__-tick { position: absolute; right: -34px; top: 50%; margin-top: -20px; width: 40px; height: 40px; border-radius: 50%; background: var(--app-green); display: flex; align-items: center; justify-content: center;
+          box-shadow: inset 0 1.5px 0 rgba(255,255,255,.45), 0 6px 14px rgba(0,0,0,.45); }
+        #__ID__-chip { position: absolute; left: 0; top: 0; background: color-mix(in srgb, var(--app-rail) 88%, transparent); backdrop-filter: blur(22px) saturate(1.3); border: 1px solid var(--app-hair); border-radius: 28px; padding: 22px 30px 24px 26px; color: var(--app-text);
+          box-shadow: inset 0 1.5px 0 rgba(255,255,255,.14), 0 30px 70px rgba(0,0,0,.5); }
+        #__ID__-chip .top { display: flex; align-items: center; gap: 20px; }
+        #__ID__-chip .n { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.05em; line-height: .9; font-size: 120px; font-variant-numeric: tabular-nums; min-width: 1.2ch; }
+        #__ID__-chip .lbl { display: grid; font-size: 32px; letter-spacing: -0.025em; line-height: 1.08; color: var(--app-text-soft); }
+        #__ID__-chip .lbl > span { grid-area: 1 / 1; }
+        #__ID__-chip .lbl .done { color: var(--app-green); opacity: 0; display: flex; align-items: center; gap: 10px; }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <div id="__ID__-drift">
+          <div id="__ID__-plate"><video id="__ID__-v" class="clip" src="assets/footage/dinner-phone.mp4" data-var-src="plate" muted playsinline data-start="0" data-duration="12" data-media-start="1.6" data-track-index="1"></video></div>
+          <div id="__ID__-shade"></div>
+          <div id="__ID__-ui" data-layout-allow-overlap data-layout-allow-overflow></div>
+        </div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe, RU = HF.realui;
+          const v = window.__hyperframes.getVariables();
+          const $ = (s) => document.getElementById(ID + "-" + s);
+          const ui = $("ui");
+          const N = Math.max(3, Math.min(8, Math.round(+v.count)));
+          const texts = String(v.messages).split("|").map((s) => s.trim()).filter(Boolean);
+          const extra = [["Chris Nolan", "chris", "SMS"], ["Devon Cole", "devon", "WhatsApp"], ["Mei Lin", "mei", "WhatsApp"], ["Sam Ortiz", "sam", "SMS"]];
+          const people = B.cast.leads.map((l) => [l.name, l.face, l.channel]).concat(extra);
+          const order = [0, 1, 2, 3, 4, 5, 6, 7];
+          const stamp = ["9:41 PM", "9:41 PM", "9:42 PM", "9:42 PM", "9:42 PM", "9:43 PM", "9:43 PM", "9:43 PM"];
+
+          const availW = W - safe.left - safe.right, availH = H - safe.top - safe.bottom;
+          const land = HF.land;
+          const NH = 86; /* real notif height at zoom 1 */
+          const PITCH = land ? 76 : 74;
+          const chipH = 232;
+          const chip = document.createElement("div"); chip.id = ID + "-chip";
+          chip.innerHTML = '<div class="top"><div class="n" id="' + ID + '-num">0</div><div class="lbl"><span class="cur">' + String(v.chipLabel).replace(/&/g, "&amp;").replace(/</g, "&lt;") + '</span><span class="done">' + RU.icons.check(B.app.green, 26) + String(v.doneLabel).replace(/&/g, "&amp;").replace(/</g, "&lt;") + "</span></div></div>";
+          ui.appendChild(chip);
+          const stackTop = land ? safe.top : safe.top + chipH + 40;
+          const stackH = H - safe.bottom - stackTop;
+          const Zn = Math.min(stackH / ((N - 1) * PITCH + NH + 8), land ? 1.95 : availW / 366, availW / 366);
+          const nw = 366 * Zn;
+          const stackLeft = land ? W - safe.right - nw - 20 : safe.left + (availW - nw) / 2;
+          const stackBlock = (N - 1) * PITCH * Zn + NH * Zn;
+          const stackY0 = land ? safe.top + (availH - stackBlock) / 2 : stackTop + (stackH - stackBlock) / 2;
+          Object.assign(chip.style, land ? { left: safe.left + "px", top: Math.round(safe.top + (availH - chipH) / 2) + "px" } : { left: Math.round(safe.left + (availW - nw) / 2) + "px", top: safe.top + "px" });
+          if (!land) chip.style.width = nw - 56 + "px";
+
+          const items = [];
+          for (let i = 0; i < N; i++) {
+            const p = people[order[i % people.length]];
+            const w = document.createElement("div"); w.className = ID + "-n"; w.style.zIndex = i + 1;
+            w.appendChild(RU.notif({ name: p[0], face: p[1], channel: p[2], text: texts[i % texts.length], when: stamp[i % stamp.length] }, { zoom: Zn }));
+            const tk = document.createElement("div"); tk.className = ID + "-tick"; tk.style.zoom = Zn; tk.innerHTML = RU.icons.check(B.app.ground, 22);
+            w.appendChild(tk);
+            Object.assign(w.style, { left: stackLeft + "px", top: stackY0 + "px" });
+            ui.appendChild(w); items.push({ w, tk });
+          }
+
+          const tl = gsap.timeline({ paused: true });
+          /* plate: constant slow push, graded down */
+          tl.fromTo("#" + ID + "-plate", { scale: 1.0 }, { scale: 1.07, duration: 8, ease: "none" }, 0);
+          /* chip */
+          tl.fromTo(chip, { opacity: 0, y: 40, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "expo.out" }, 0.3);
+          /* steady stagger, 0.5 s apart */
+          const gaps = [0.5]; /* a steady 0.5 s: three arrivals inside 1 s trip the flash check (the sliding pile flips pixels), so no acceleration */
+          const at = [0.75];
+          for (let i = 1; i < N; i++) at.push(at[i - 1] + gaps[Math.min(i - 1, gaps.length - 1)]);
+          const num = $("num"), o = { v: 0 };
+          const stepPx = PITCH * Zn;
+          items.forEach(({ w, tk }, i) => {
+            gsap.set(tk, { scale: 0 });
+            tl.fromTo(w, { y: -70 * Zn, opacity: 0, scale: 0.94, filter: "blur(10px)" }, { y: 0, opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.45, ease: "power3.out" }, at[i]);
+            for (let j = 0; j < i; j++) tl.to(items[j].w, { y: (i - j) * stepPx, duration: 0.4, ease: "power3.out" }, at[i]);
+            tl.to(o, { v: i + 1, duration: 0.16, ease: "none", onUpdate: () => { num.textContent = Math.round(o.v); } }, at[i]);
+          });
+          let t = at[N - 1] + 0.9;
+          let end = t + 0.6;
+          if (v.answer) {
+            /* top card first: the newest, then down the pile */
+            for (let k = 0; k < N; k++) {
+              const it = items[N - 1 - k], t0 = t + k * 0.16;
+              tl.fromTo(it.tk, { scale: 0 }, { scale: 1, duration: 0.35, ease: "back.out(1.8)" }, t0);
+              tl.to(it.w, { opacity: 0.82, duration: 0.3, ease: "power2.out" }, t0 + 0.1);
+            }
+            const tf = t + N * 0.16 + 0.1;
+            tl.to(chip.querySelector(".cur"), { opacity: 0, duration: 0.2 }, tf);
+            tl.to(chip.querySelector(".done"), { opacity: 1, duration: 0.3, ease: "power2.out" }, tf + 0.1);
+            tl.to(chip, { borderColor: "color-mix(in srgb, var(--app-green) 55%, var(--app-hair))", duration: 0.4 }, tf + 0.1);
+            end = tf + 1.2;
+          }
+          tl.fromTo("#" + ID + "-ui", { y: land ? 0 : 14 }, { y: land ? -14 : 0, duration: end + 0.5, ease: "sine.out" }, 0);
+          if (v.fadeOut) tl.fromTo("#" + ID + "-drift", { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(10px)", duration: 0.5, ease: "power2.in" }, end);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

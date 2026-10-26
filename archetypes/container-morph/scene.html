@@ -1,0 +1,150 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"lead","type":"string","label":"Lead id from BRAND.cast.leads (jordan, priya, marcus, ana)","default":"jordan"},
+  {"id":"text","type":"string","label":"Banner text, becomes the first bubble (empty = first lead message of BRAND.story.sampleThread)","default":""},
+  {"id":"channel","type":"enum","label":"Channel","default":"auto","options":[{"value":"auto","label":"The lead own channel"},{"value":"sms","label":"SMS"},{"value":"whatsapp","label":"WhatsApp"}]},
+  {"id":"dots","type":"boolean","label":"End on the typing indicator (hand-off into chat-thread)","default":true},
+  {"id":"fadeOut","type":"boolean","label":"Blur out at the end","default":false}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-ui); }
+        #__ID__-drift, #__ID__-cam { position: absolute; inset: 0; }
+        #__ID__-glow { position: absolute; inset: 0; pointer-events: none; opacity: 0; }
+        #__ID__-space { position: absolute; transform-origin: 0 0; }
+        #__ID__-space > * { position: absolute; }
+        #__ID__-bg { left: 0; top: 0; box-sizing: border-box; backdrop-filter: blur(24px) saturate(1.4); -webkit-backdrop-filter: blur(24px) saturate(1.4); box-shadow: 0 30px 70px rgba(0,0,0,.45), 0 8px 22px rgba(0,0,0,.35); }
+        #__ID__-skin { left: 0; top: 0; pointer-events: none; box-sizing: border-box;
+          box-shadow: inset 0 1.5px 0 rgba(255,255,255,.30), inset 1.5px 0 0 rgba(255,255,255,.12), inset 0 -1.5px 0 rgba(0,0,0,.45); }
+        #__ID__-thread, #__ID__-banner { left: 0; top: 0; }
+        #__ID__-thread .ru-thread { border: 0; border-radius: 0; background: transparent; display: flex; flex-direction: column; }
+        #__ID__-thread .ru-thread .hd { background: transparent; }
+        #__ID__-thread .ru-thread .bd { flex: 1; }
+        #__ID__-thread .ru-b { font-size: 16px; }
+        #__ID__-banner .ru-notif { background: transparent; border: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+        #__ID__-banner .ru-notif .msg { display: block; -webkit-line-clamp: unset; visibility: hidden; }
+        #__ID__-ghost { margin: 0; white-space: normal; transform-origin: 0 0; pointer-events: none; opacity: 0; font-family: var(--font-ui); letter-spacing: var(--track-ui); }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <div id="__ID__-drift"><div id="__ID__-glow"></div><div id="__ID__-cam"><div id="__ID__-space"></div></div></div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe, RU = HF.realui;
+          const v = window.__hyperframes.getVariables();
+          const $ = (s) => document.getElementById(ID + "-" + s);
+          const lead = B.cast.leads.find((l) => l.id === v.lead) || B.cast.leads[0];
+          const chan = v.channel === "sms" ? "SMS" : v.channel === "whatsapp" ? "WhatsApp" : lead.channel;
+          const first = B.story.sampleThread.find((m) => m.from !== "assistant");
+          const text = String(v.text || "").trim() || first.text;
+
+          /* ---- design space: 1 unit = 1 css px of the real app, scaled by Z; the final thread card is centred in the safe area ---- */
+          const availW = W - safe.right - safe.left, availH = H - safe.top - safe.bottom;
+          const dw = HF.land ? 460 : 365, dh = HF.land ? 330 : 340;
+          const Z = Math.min(availW / dw, (availH * 0.8) / dh);
+          const space = $("space");
+          Object.assign(space.style, { width: dw + "px", height: dh + "px", left: Math.round(safe.left + (availW - dw * Z) / 2) + "px", top: Math.round(safe.top + (availH - dh * Z) / 2) + "px", transform: "scale(" + Z + ")" });
+
+          /* warm pool of light behind the card, so the dark card is lit by something (soft, never a flood) */
+          const glow = $("glow");
+          glow.style.background = "radial-gradient(ellipse " + Math.round(Math.max(availW * 0.75, W * 0.5)) + "px " + Math.round(availH * 0.62) + "px at " + Math.round(safe.left + availW / 2) + "px " + Math.round(safe.top + availH / 2) + "px, color-mix(in srgb, var(--glow-5) 34%, transparent), transparent 72%)";
+          const bg = document.createElement("div"); bg.id = ID + "-bg";
+          const skin = document.createElement("div"); skin.id = ID + "-skin";
+          const threadLayer = document.createElement("div"); threadLayer.id = ID + "-thread"; threadLayer.setAttribute("data-layout-allow-overlap", "");
+          const bannerWrap = document.createElement("div"); bannerWrap.id = ID + "-banner"; bannerWrap.setAttribute("data-layout-allow-overlap", "");
+          const ghost = document.createElement("div"); ghost.id = ID + "-ghost";
+          space.append(bg, threadLayer, skin, bannerWrap, ghost);
+
+          const msgs = [{ from: "in", text, meta: "9:04 PM" }];
+          if (v.dots) msgs.push({ from: "out", typing: true });
+          const thread = RU.thread({ name: lead.name, face: lead.face, channel: chan, phone: "+1 (555) 01" + (lead.id.length * 7 + 20), messages: msgs, ai: true, composer: true });
+          thread.style.width = dw + "px"; thread.style.height = dh + "px";
+          threadLayer.appendChild(thread);
+          const notif = RU.notif({ name: lead.name, face: lead.face, channel: chan, text, when: "now" });
+          bannerWrap.appendChild(notif);
+
+          /* the glass the banner has, read from the real component before it is made transparent */
+          const probe = RU.notif({}); space.appendChild(probe);
+          const pcs = getComputedStyle(probe);
+          const glass0 = pcs.backgroundColor, radius0 = parseFloat(pcs.borderTopLeftRadius), bdr0 = pcs.borderTopColor;
+          space.removeChild(probe);
+          const ground = B.app.ground;
+          const bub = thread.querySelector(".ru-msg.in .ru-b"), inMeta = thread.querySelector(".ru-msg.in .ru-meta");
+          const outMsg = thread.querySelector(".ru-msg.out");
+          const bannerMsg = notif.querySelector(".msg");
+          const chrome = [notif.querySelector(".ru-av"), notif.querySelector(".top"), notif.querySelector(".ch")].filter(Boolean);
+          const tx = notif.querySelector(".tx");
+          const hd = thread.querySelector(".hd"), cmp = thread.querySelector(".ru-composer");
+          bub.style.color = "transparent";
+
+          /* live layout measurement in design px: offsets ignore every transform, so entrance tweens and camera drift cannot skew it */
+          const box = (el) => ({ l: el.offsetLeft, t: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight });
+          const bcs = getComputedStyle(bub), bPadL = parseFloat(bcs.paddingLeft) + parseFloat(bcs.borderLeftWidth), bPadT = parseFloat(bcs.paddingTop) + parseFloat(bcs.borderTopWidth);
+          const mcs = getComputedStyle(bannerMsg), FS0 = parseFloat(mcs.fontSize), LH0 = parseFloat(mcs.lineHeight), FS1 = parseFloat(bcs.fontSize), LH1 = parseFloat(bcs.lineHeight);
+          const bubText = () => ({ l: bub.offsetLeft + bPadL, t: bub.offsetTop + bPadT, w: bub.offsetWidth - 2 * bPadL });
+          const lerp = (a, b, k) => a + (b - a) * k;
+          ghost.textContent = text;
+
+          const mo = { m: 0 };
+          const apply = () => {
+            const k = mo.m;
+            const b0 = box(notif), f = { l: 0, t: 0, w: dw, h: dh };
+            const g0 = box(bannerMsg), g1 = bubText();
+            const r = { l: lerp(b0.l, f.l, k), t: lerp(b0.t, f.t, k), w: lerp(b0.w, f.w, k), h: lerp(b0.h, f.h, k) };
+            const rad = lerp(radius0, 22, k);
+            Object.assign(bg.style, { left: r.l + "px", top: r.t + "px", width: r.w + "px", height: r.h + "px", borderRadius: rad + "px", backgroundColor: gsap.utils.interpolate(glass0, ground, Math.min(1, k * 1.4)), border: "1px solid " + gsap.utils.interpolate(bdr0, B.app.hair, k) });
+            Object.assign(skin.style, { left: r.l + "px", top: r.t + "px", width: r.w + "px", height: r.h + "px", borderRadius: rad + "px" });
+            const cp = "inset(" + r.t + "px " + (dw - r.l - r.w) + "px " + (dh - r.t - r.h) + "px " + r.l + "px round " + rad + "px)";
+            threadLayer.style.clipPath = cp; threadLayer.style.webkitClipPath = cp;
+            Object.assign(ghost.style, { left: lerp(g0.l, g1.l, k) + "px", top: lerp(g0.t, g1.t, k) + "px", width: lerp(g0.w, g1.w, k) + "px", fontSize: lerp(FS0, FS1, k) + "px", lineHeight: lerp(LH0, LH1, k) + "px", color: gsap.utils.interpolate("rgba(255,255,255,0.88)", B.app.text, k) });
+          };
+
+          const tl = gsap.timeline({ paused: true });
+          const TM = 1.45, MD = 0.8;
+          /* banner arrives */
+          const above = -(parseFloat(space.style.top) + 180) / Z;
+          tl.fromTo(bannerWrap, { y: above, opacity: 0, scale: 0.96, transformOrigin: "50% 0%" }, { y: 0, opacity: 1, scale: 1, duration: 0.7, ease: "expo.out" }, 0.05);
+          tl.fromTo(ghost, { y: above, opacity: 0, scale: 0.96, transformOrigin: "0 0" }, { y: 0, opacity: 1, scale: 1, duration: 0.7, ease: "expo.out" }, 0.05);
+          /* the banner background is the morph container from the first frame */
+          tl.fromTo(bg, { opacity: 0, y: above, scale: 0.96, transformOrigin: "50% 0%" }, { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: "expo.out" }, 0.05);
+          tl.fromTo(skin, { opacity: 0, y: above, scale: 0.96, transformOrigin: "50% 0%" }, { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: "expo.out" }, 0.05);
+          gsap.set(threadLayer, { opacity: 1 });
+          gsap.set([hd, cmp, bub], { opacity: 0 });
+          if (inMeta) gsap.set(inMeta, { opacity: 0 });
+          if (outMsg) gsap.set(outMsg, { opacity: 0 });
+          tl.fromTo(glow, { opacity: 0 }, { opacity: 1, duration: 1.6, ease: "power2.out" }, 1.3);
+          /* press, then morph */
+          tl.to([bannerWrap, ghost, bg, skin], { scale: 0.972, duration: 0.09, ease: "power2.out" }, 1.25);
+          tl.to([bannerWrap, ghost, bg, skin], { scale: 1, duration: 0.14, ease: "power2.out" }, 1.34);
+          tl.fromTo(mo, { m: 0 }, { m: 1, duration: MD, ease: "expo.inOut", onUpdate: apply, immediateRender: false }, TM);
+          tl.to(chrome, { opacity: 0, duration: 0.18, ease: "power2.in" }, TM + 0.2);
+          tl.to(hd, { opacity: 1, duration: 0.25, ease: "power2.out" }, TM + 0.42);
+          tl.to(cmp, { opacity: 1, duration: 0.3, ease: "power2.out" }, TM + 0.5);
+          tl.to(bub, { opacity: 1, duration: 0.2, ease: "power2.out" }, TM + 0.5);
+          /* swap the ghost for the real bubble text on one frame */
+          tl.set(bub, { color: B.app.text }, TM + MD);
+          tl.set(ghost, { opacity: 0 }, TM + MD);
+          if (inMeta) tl.fromTo(inMeta, { opacity: 0, y: 5 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, TM + MD + 0.05);
+          let end = TM + MD + 0.9;
+          if (outMsg) {
+            const dd = outMsg.querySelector(".ru-b");
+            tl.fromTo(outMsg, { opacity: 0, scale: 0.5, transformOrigin: "100% 0%" }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.7)" }, end);
+            tl.fromTo(outMsg.querySelectorAll(".ru-typing i"), { y: 0 }, { y: -5, duration: 0.14, ease: "sine.inOut", yoyo: true, repeat: 7, stagger: 0.07 }, end + 0.1);
+            end += 1.2;
+          }
+          apply();
+          /* layout is static (offsets ignore transforms), so re-measuring on every seek is deterministic and survives late font loading */
+          tl.fromTo(mo, { t: 0 }, { t: 1, duration: end + 0.5, ease: "none", onUpdate: apply, immediateRender: false }, 0);
+          tl.fromTo("#" + ID + "-drift", { scale: 1.0, y: 0 }, { scale: 1.04, y: -14, duration: end + 0.5, ease: "sine.out" }, 0);
+          if (v.fadeOut) tl.fromTo("#" + ID + "-drift", { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(10px)", duration: 0.5, ease: "power2.in" }, end);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

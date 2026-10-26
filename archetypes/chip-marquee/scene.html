@@ -1,0 +1,174 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"headline","type":"string","label":"Headline","default":"Every lead, answered."},
+  {"id":"messages","type":"string","label":"Messages as question=>reply, | separated ({address} = listing address; leads come from the brand cast in order)","default":"Is {address} still available?=>Yes, it is. Want to see it Saturday?|Do you allow dogs?=>Cats and small dogs are welcome.|Can I tour it tonight?=>Tonight at 7:15 is open. Booking it.|What is the deposit?=>One month of rent, due at signing.|Is there parking?=>One garage space is included.|Which day works for a showing?=>Saturday at 11:00 is open. Booked."},
+  {"id":"fadeOut","type":"boolean","label":"Blur out at the end","default":true}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-ui); }
+        #__ID__-drift, #__ID__-cam { position: absolute; inset: 0; }
+        .__ID__-row { position: absolute; left: 0; top: 0; width: 100%; height: 0; will-change: transform; }
+        .__ID__-chip { position: absolute; left: 0; top: 0; display: flex; align-items: center; box-sizing: border-box;
+          gap: .75em; padding: 0 1.1em 0 .9em; border-radius: 1.45em; color: var(--ink); will-change: transform, filter, opacity;
+          background: linear-gradient(180deg, rgba(255,255,255,.17), rgba(255,255,255,.05)), color-mix(in srgb, var(--bg2) 62%, transparent);
+          backdrop-filter: blur(22px) saturate(1.5) brightness(1.15); -webkit-backdrop-filter: blur(22px) saturate(1.5) brightness(1.15);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -.4em 1em rgba(0,0,0,.25), 0 .25em .6em rgba(0,0,0,.35), 0 1.2em 2.8em rgba(0,0,0,.42); overflow: hidden; }
+        .__ID__-chip::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: .09em; pointer-events: none;
+          background: linear-gradient(135deg, rgba(255,255,255,.85), rgba(255,255,255,.12) 55%, rgba(255,255,255,.22));
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        .__ID__-sheen { position: absolute; top: -20%; bottom: -20%; left: 0; width: 3.4em; opacity: 0; pointer-events: none; transform: translateX(-4em) skewX(-20deg);
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,.34), transparent); filter: blur(6px); }
+        .__ID__-av { flex: none; width: 3.7em; height: 3.7em; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 .09em rgba(255,255,255,.34), 0 .25em .6em rgba(0,0,0,.45); }
+        .__ID__-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .12em; }
+        .__ID__-nm { display: flex; align-items: center; gap: .45em; font-size: .84em; line-height: 1.25; color: var(--muted); white-space: nowrap; }
+        .__ID__-nm b { font-weight: 600; font-size: 1.12em; color: var(--ink); letter-spacing: var(--track-ui); }
+        .__ID__-nm .g { display: inline-flex; align-items: center; gap: .3em; }
+        .__ID__-nm .g img, .__ID__-nm .g svg { width: 1.15em; height: 1.15em; }
+        .__ID__-ans { margin-left: auto; display: inline-flex; align-items: center; gap: .3em; padding: .1em .65em .1em .45em; border-radius: 99em; font-weight: 600; font-size: .94em; color: color-mix(in srgb, var(--ok) 70%, #fff);
+          background: color-mix(in srgb, var(--ok) 20%, transparent); box-shadow: inset 0 0 0 .08em color-mix(in srgb, var(--ok) 50%, transparent); transform-origin: 100% 50%; }
+        .__ID__-ans svg { width: 1.05em; height: 1.05em; }
+        .__ID__-q { font-size: 1.04em; line-height: 1.32; font-weight: 500; letter-spacing: var(--track-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .__ID__-a { display: flex; align-items: center; gap: .45em; font-size: .98em; line-height: 1.32; letter-spacing: var(--track-ui); color: color-mix(in srgb, var(--accent-lift) 55%, var(--ink)); white-space: nowrap; }
+        .__ID__-a img { flex: none; width: 1.25em; height: 1.25em; border-radius: .32em; box-shadow: 0 .1em .3em rgba(0,0,0,.4); }
+        .__ID__-a span { overflow: hidden; text-overflow: ellipsis; }
+        #__ID__-hd { position: absolute; text-align: center; font-family: var(--font-display); font-weight: var(--w-display); letter-spacing: var(--track-display);
+          line-height: 1.04; color: var(--ink); text-shadow: 0 .05em .5em rgba(0,0,0,.5); }
+        #__ID__-hd span { display: inline-block; white-space: pre; will-change: transform, filter, opacity; }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <div id="__ID__-drift"><div id="__ID__-cam"><div id="__ID__-rows"></div><div id="__ID__-hd"></div></div></div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe, fid = B.format.id;
+          const v = window.__hyperframes.getVariables();
+          const pick = o => (o[fid] !== undefined ? o[fid] : o.def);
+          const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+          const land = W > H;
+          const ux0 = safe.left, ux1 = W - safe.right, uy0 = safe.top, uy1 = H - safe.bottom, uw = ux1 - ux0, cx = (ux0 + ux1) / 2, cy = (uy0 + uy1) / 2;
+          const leads = B.cast.leads, addr = B.cast.listing.address;
+          const msgs = String(v.messages).split("|").map(s => s.replace(/\{address\}/g, addr).split("=>").map(x => x.trim()));
+          const nM = msgs.length;
+          const R = pick({ "16x9": 3, "9x16": 5, "1x1": 4, "4x5": 5, def: 3 });
+          const hz = pick({ "16x9": 200, "9x16": 170, "1x1": 170, "4x5": 190, def: 190 });
+          const hfs = pick({ "16x9": 108, "9x16": 104, "1x1": 92, "4x5": 96, def: 100 });
+          const hScale = pick({ "16x9": 0.72, "9x16": 0.62, "1x1": 0.7, "4x5": 0.68, def: 0.7 });
+          const rowsTop = uy0 + hz, pitch = (uy1 - rowsTop) / R;
+          const chipH = Math.round(clamp(pitch - 18, 100, 156)), em = chipH / 6, chipW = Math.round(25 * em);
+          const pitchX = chipW + Math.round(1.1 * em);
+          const rowY = r => Math.round(rowsTop + r * pitch + (pitch - chipH) / 2);
+
+          /* headline */
+          const hd = document.getElementById(ID + "-hd");
+          hd.style.left = ux0 + "px"; hd.style.width = uw + "px"; hd.style.fontSize = hfs + "px";
+          hd.innerHTML = String(v.headline).split(" ").map(w => "<span>" + w + "</span>").join(" ");
+          const hh = hd.offsetHeight;
+          hd.style.top = Math.round(cy - hh / 2) + "px";
+          hd.style.transformOrigin = "50% 50%";
+
+          /* cluster anchors (chip top-left) */
+          const nC = 4, gapC = Math.round(0.9 * em);
+          let anchors;
+          if (land) {
+            anchors = [[ux0, 134], [ux1 - chipW - 40, 196], [ux0 + 70, uy1 - chipH - 70], [ux1 - chipW, uy1 - chipH - 20]];
+          } else {
+            const top1 = Math.round(cy - hh / 2 - 26 - chipH), bot0 = Math.round(cy + hh / 2 + 26), sp = chipH + gapC;
+            const xl = ux0, xr = ux1 - chipW, xm = (xl + xr) / 2;
+            anchors = [[xl + (xr - xl) * 0.1, top1 - sp], [xr, top1], [xl, bot0], [xl + (xr - xl) * 0.85, bot0 + sp]];
+          }
+
+          /* rows: chip i of row r sits at x = stag_r + i*pitchX */
+          const NI = Math.ceil(W / pitchX) + 5, I0 = -4;
+          const stag = r => Math.round(ux0 + (uw - chipW) * ((r * 0.37) % 1));
+          const chipX = (r, i) => Math.round(stag(r) + i * pitchX);
+          const used = {}, clusterAt = {};
+          anchors.slice(0, nC).forEach((a, k) => {
+            let best = null;
+            for (let r = 0; r < R; r++) for (let i = I0; i < I0 + NI; i++) {
+              const x = chipX(r, i), key = r + ":" + i;
+              if (used[key] || x < 0 || x > W - chipW) continue;
+              const d = Math.hypot(x - a[0], rowY(r) - a[1]) + (used["r" + r] ? 260 : 0);
+              if (!best || d < best.d) best = { d, r, i, key };
+            }
+            if (!best) return;
+            used[best.key] = 1; used["r" + best.r] = (used["r" + best.r] || 0) + 1; clusterAt[best.key] = k;
+          });
+
+          const SMS = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>';
+          const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>';
+          const glyph = ch => (/whatsapp/i.test(ch) && B.partners.whatsapp ? '<img src="' + B.partners.whatsapp + '" alt="">' : SMS);
+          const rowsEl = document.getElementById(ID + "-rows");
+          const rowEls = [], chips = [];
+          const seq = [];
+          for (let r = 0; r < R; r++) {
+            const row = [];
+            for (let i = I0; i < I0 + NI; i++) { const ck = clusterAt[r + ":" + i]; row.push(ck !== undefined ? ck % nM : (((i - I0) + r * 2) % nM + nM) % nM); }
+            row.forEach((m, j) => { if (clusterAt[r + ":" + (j + I0)] === undefined) while (m === row[j - 1] || m === row[j + 1] || m === (seq[r - 1] || [])[j]) m = (m + 1) % nM; row[j] = m; });
+            seq.push(row);
+          }
+          for (let r = 0; r < R; r++) {
+            const re = document.createElement("div"); re.className = ID + "-row"; re.id = ID + "-r" + r; rowsEl.appendChild(re); rowEls.push(re);
+            for (let i = I0; i < I0 + NI; i++) {
+              const key = r + ":" + i, ck = clusterAt[key], m = seq[r][i - I0];
+              const L = leads[m % leads.length], pair = msgs[m];
+              const el = document.createElement("div"); el.className = ID + "-chip"; el.id = ID + "-c" + r + "_" + (i - I0);
+              el.style.cssText += ";width:" + chipW + "px;height:" + chipH + "px;font-size:" + em + "px;left:" + chipX(r, i) + "px;top:" + rowY(r) + "px";
+              el.innerHTML = '<img class="' + ID + '-av" src="' + B.faces[L.face] + '" alt=""><div class="' + ID + '-tx"><div class="' + ID + '-nm"><b>' + L.name + '</b><span class="g">' + glyph(L.channel) + L.channel + '</span><span class="' + ID + '-ans">' + CHECK + 'Answered</span></div><div class="' + ID + '-q">' + pair[0] + '</div><div class="' + ID + '-a"><img src="' + B.logo.tile + '" alt=""><span>' + (pair[1] || "") + '</span></div></div><div class="' + ID + '-sheen"></div>';
+              re.appendChild(el);
+              chips.push({ el, r, i, ck, x: chipX(r, i), y: rowY(r) });
+            }
+          }
+
+          const tl = gsap.timeline({ paused: true });
+          const T = 2.45, SCROLL = 0.07 * W, END = T + 3.1;
+          /* headline: word blur-in, then lifts to the head zone */
+          const words = hd.querySelectorAll("span");
+          tl.fromTo(words, { opacity: 0, filter: "blur(14px)", y: 8 }, { opacity: 1, filter: "blur(0px)", y: 0, duration: 0.55, stagger: 0.1, ease: "power3.out" }, 0.1);
+          /* the headline dissolves before the cluster chips cross its spot, then resolves in the head zone */
+          tl.to(hd, { opacity: 0, filter: "blur(10px)", duration: 0.28, ease: "power2.in" }, T - 0.22);
+          tl.set(hd, { y: Math.round(uy0 + hz / 2 - cy), scale: hScale }, T + 0.1);
+          tl.fromTo(hd, { opacity: 0, filter: "blur(12px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.55, ease: "power3.out" }, T + 0.45);
+
+          /* cluster chips fly in on curves (x and y on different eases), answer, then travel to their marquee slot */
+          chips.forEach(c => {
+            const { el } = c, k = c.ck;
+            if (k === undefined) {
+              tl.fromTo(el, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out" }, T + 0.05 + 0.04 * (c.r % 3));
+              return;
+            }
+            const a = anchors[k], dx0 = a[0] - c.x, dy0 = a[1] - c.y, left = a[0] + chipW / 2 < cx;
+            const t0 = 0.28 + k * 0.17, ans = 1.2 + k * 0.24;
+            const qa = el.querySelector("." + ID + "-a"), badge = el.querySelector("." + ID + "-ans");
+            tl.set(el, { x: dx0, y: dy0, opacity: 0 }, 0);
+            tl.fromTo(el, { x: dx0 + (left ? -W * 0.45 : W * 0.45), opacity: 0, filter: "blur(18px)", rotation: left ? -5 : 5 },
+              { x: dx0, opacity: 1, filter: "blur(0px)", rotation: 0, duration: 0.85, ease: "expo.out" }, t0);
+            tl.fromTo(el, { y: dy0 + (k < 2 ? -260 : 260) }, { y: dy0, duration: 0.95, ease: "power3.out" }, t0);
+            tl.fromTo(el.querySelector("." + ID + "-sheen"), { x: -4 * em, opacity: 1 }, { x: chipW + 4 * em, opacity: 1, duration: 0.8, ease: "power2.inOut" }, t0 + 0.3);
+            tl.fromTo(qa, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, ans);
+            tl.fromTo(badge, { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.6)" }, ans + 0.05);
+            tl.fromTo(el, { x: dx0, y: dy0 }, { x: 0, y: 0, duration: 0.95, ease: "power3.inOut" }, T - 0.2 + 0.07 * k);
+          });
+          /* marquee: smooth start, then linear; rows alternate direction */
+          const drive = { u: 0 };
+          const apply = () => rowEls.forEach((re, r) => {
+            const dir = r % 2 === 0 ? 1 : -1, sp = SCROLL * (1 + 0.12 * (r % 3 - 1)), tau = 0.55;
+            const u = drive.u, x = dir * sp * (u + tau * (Math.exp(-u / tau) - 1));
+            re.style.transform = "translate3d(" + x.toFixed(2) + "px,0,0)";
+          });
+          apply();
+          tl.fromTo(drive, { u: 0 }, { u: END - (T - 0.3), duration: END - (T - 0.3), ease: "none", onUpdate: apply }, T - 0.3);
+          /* slow camera drift over the whole scene */
+          tl.fromTo("#" + ID + "-drift", { scale: 1, y: 0 }, { scale: 1.035, y: -10, duration: END + 0.5, ease: "sine.out" }, 0);
+          if (v.fadeOut) tl.fromTo("#" + ID + "-drift", { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(10px)", duration: 0.5, ease: "power2.in" }, END);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

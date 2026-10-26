@@ -1,0 +1,89 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"text","type":"string","label":"Line of copy, *stars* mark the one accent word, a real newline or \\n forces a break","default":"Every lead, *answered.*"},
+  {"id":"size","type":"number","label":"Font size in px at 16x9 (vertical formats scale up, then fit the safe width)","default":132,"min":60,"max":260,"step":2},
+  {"id":"align","type":"string","label":"Text alignment: left, center or right","default":"center"},
+  {"id":"pullback","type":"boolean","label":"Start 2x zoomed lower-left and pull back to centre in one expo.out move","default":true},
+  {"id":"dimOut","type":"boolean","label":"Dim and blur the line out at the end","default":true}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-display); }
+        #__ID__-cam, #__ID__-drift { position: absolute; inset: 0; }
+        #__ID__-box { position: absolute; display: flex; align-items: center; justify-content: center; }
+        #__ID__-text { width: 100%; word-spacing: 0.02em; font-weight: 600; letter-spacing: var(--track-display); line-height: 1.04; color: var(--ink); font-style: normal; text-transform: none; }
+        .__ID__-w { display: inline-block; white-space: nowrap; transform-origin: 50% 58%; will-change: transform, filter, opacity; opacity: 0;
+          text-shadow: 0 0.05em 0.35em rgba(0,0,0,.5), 0 0 0.5em color-mix(in srgb, var(--accent) 16%, transparent); }
+        .__ID__-br { display: block; height: 0; }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <div id="__ID__-cam"><div id="__ID__-drift"><div id="__ID__-box"><div id="__ID__-text"></div></div></div></div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe;
+          const v = window.__hyperframes.getVariables();
+          const vert = H > W, STEP = 0.14;
+          const ink = B.palette.ink, accent = B.palette.accentLift;
+          // layout box = safe area (x/y insets), text fitted so the longest word stays inside it
+          const bx = safe.left, bw = W - safe.left - safe.right, by = safe.top, bh = H - safe.top - safe.bottom;
+          const box = document.getElementById(ID + "-box");
+          Object.assign(box.style, { left: bx + "px", top: by + "px", width: bw + "px", height: bh + "px" });
+          const raw = String(v.text).replace(/\\n/g, "\n");
+          const tokens = [];
+          let acc = false;
+          raw.split("\n").forEach((ln, li) => {
+            if (li) tokens.push(null);
+            ln.split(" ").filter(Boolean).forEach(w => {
+              if (w.startsWith("*")) acc = true;
+              tokens.push({ t: w.replace(/^\*/, "").replace(/\*$/, ""), a: acc });
+              if (w.endsWith("*")) acc = false;
+            });
+          });
+          const words = tokens.filter(Boolean);
+          const longest = Math.max(...words.map(w => w.t.length));
+          const want = (+v.size) * (vert ? 1.5 : 1);
+          const fit = bw / (longest * 0.6);
+          const fs = Math.round(Math.min(want, fit));
+          const txt = document.getElementById(ID + "-text");
+          txt.style.fontSize = fs + "px";
+          txt.style.textAlign = String(v.align);
+          const els = [];
+          tokens.forEach(k => {
+            if (!k) { const b = document.createElement("span"); b.className = ID + "-br"; txt.appendChild(b); return; }
+            const s = document.createElement("span");
+            s.className = ID + "-w"; s.textContent = k.t;
+            if (k.a) s.style.color = accent;
+            if (els.length && txt.lastChild && txt.lastChild.nodeType === 1 && txt.lastChild.className === ID + "-w") txt.appendChild(document.createTextNode(" "));
+            txt.appendChild(s); els.push({ s, a: k.a });
+          });
+          const tl = gsap.timeline({ paused: true });
+          const T0 = 0.1, DUR = 0.8;
+          els.forEach(({ s, a }, i) => {
+            const at = T0 + i * STEP;
+            tl.fromTo(s, { opacity: 0, filter: "blur(14px)", scale: 1.06 }, { opacity: 1, filter: "blur(0px)", scale: 1, duration: DUR, ease: "expo.out" }, at);
+            if (!a) tl.fromTo(s, { color: accent }, { color: ink, duration: 0.6, ease: "power2.out" }, at);
+          });
+          const lastIn = T0 + (els.length - 1) * STEP + DUR;
+          const cam = "#" + ID + "-cam", dr = "#" + ID + "-drift";
+          const o = { transformOrigin: W / 2 + "px " + H / 2 + "px" };
+          if (v.pullback) {
+            tl.fromTo(cam, { scale: vert ? 1.7 : 1.8, x: -W * (vert ? 0.14 : 0.18), y: H * (vert ? 0.07 : 0.12), ...o }, { scale: 1, x: 0, y: 0, duration: 2.2, ease: "expo.out" }, 0);
+            // motion blur proportional to the camera speed (also keeps fast strokes from flickering pixels: flashcheck)
+            const mb = { b: 12 }, camEl = document.getElementById(ID + "-cam");
+            tl.fromTo(mb, { b: 12 }, { b: 0, duration: 1.1, ease: "power2.out", onUpdate: () => { camEl.style.filter = mb.b > 0.05 ? "blur(" + mb.b.toFixed(2) + "px)" : "none"; } }, 0);
+          }
+          const end = lastIn + 0.9;
+          tl.fromTo(dr, { scale: 1, ...o }, { scale: v.pullback ? 0.94 : 0.97, duration: end + 0.7, ease: "sine.out" }, 0);
+          if (v.dimOut) tl.to("." + ID + "-w", { opacity: 0.06, filter: "blur(12px)", duration: 0.6, ease: "power2.in" }, end);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

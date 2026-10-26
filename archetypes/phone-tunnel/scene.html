@@ -1,0 +1,170 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"screens","type":"string","label":"Four BRAND.ui keys, | separated: left, top, right, floor (home, thread, ask, askOpen, showings, showingsMonth)","default":"thread|home|ask|showings"},
+  {"id":"text","type":"string","label":"Centre line","default":"All in one app."},
+  {"id":"text2","type":"string","label":"Second centre line (blur-cross swap), empty for none","default":"Built for realtors."},
+  {"id":"fadeOut","type":"boolean","label":"Blur the last line out at the end","default":true}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-display); }
+        #__ID__-cam { position: absolute; inset: 0; }
+        .__ID__-fill { position: absolute; inset: 0; }
+        .__ID__-stage { position: absolute; inset: 0; }
+        .__ID__-world { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+        .__ID__-slot { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+        .__ID__-orient { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+        .__ID__-lit { position: absolute; left: 4.9%; top: 2.2%; width: 90.2%; height: 95.6%; border-radius: 125px; overflow: hidden; pointer-events: none; }
+        .__ID__-lit i { position: absolute; inset: 0; display: block; }
+        .__ID__-bounce { position: absolute; left: -14%; right: -14%; top: -9%; height: 26%; background: radial-gradient(50% 62% at 50% 72%, color-mix(in srgb, var(--accent) 48%, transparent), transparent 72%); mix-blend-mode: screen; filter: blur(16px); pointer-events: none; }
+        #__ID__-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+        .__ID__-line { position: absolute; display: flex; flex-wrap: wrap; justify-content: center; font-weight: 600; letter-spacing: var(--track-display); line-height: 1.02; color: var(--paper); text-shadow: 0 6px 40px rgba(0,0,0,.55), 0 0 28px color-mix(in srgb, var(--accent-lift) 30%, transparent); }
+        .__ID__-line span { display: inline-block; white-space: pre; }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+          <filter id="__ID__-mbf-0" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur id="__ID__-fe-0" stdDeviation="0 0" /></filter>
+          <filter id="__ID__-mbf-1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur id="__ID__-fe-1" stdDeviation="0 0" /></filter>
+          <filter id="__ID__-mbf-2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur id="__ID__-fe-2" stdDeviation="0 0" /></filter>
+          <filter id="__ID__-mbf-3" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur id="__ID__-fe-3" stdDeviation="0 0" /></filter>
+        </defs></svg>
+        <div id="__ID__-cam"></div>
+        <div id="__ID__-text"></div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, vert = H > W * 1.4, land = W > H;
+          const v = window.__hyperframes.getVariables();
+          const keys = String(v.screens).split("|").map(s => s.trim()).filter(Boolean);
+          const cam = document.getElementById(ID + "-cam");
+          const textHost = document.getElementById(ID + "-text");
+
+          /* geometry: the tunnel is a box; every phone lies on one wall with its long axis along the tunnel */
+          const G = HF.pick({
+            "16x9": { px: 1300, s: 0.80, ss: 0.80, hx: 600, hy: 370, z0: 60 },
+            "9x16": { px: 1500, s: 0.80, ss: 1.02, hx: 455, hy: 450, z0: 120 },
+            "1x1":  { px: 1300, s: 0.60, ss: 0.60, hx: 430, hy: 430, z0: 72 },
+            "4x5":  { px: 1400, s: 0.68, ss: 0.8, hx: 440, hy: 520, z0: 90 },
+            def:    { px: 1300, s: 0.80, ss: 0.80, hx: 600, hy: 370, z0: 60 }
+          });
+          const OR = {
+            top: "rotateX(-90deg)", left: "rotateY(90deg) rotateZ(90deg)",
+            right: "rotateY(-90deg) rotateZ(-90deg)", floor: "rotateX(90deg)"
+          };
+          const HOME = { top: { x: 0, y: -G.hy }, left: { x: -G.hx, y: 0 }, right: { x: G.hx, y: 0 }, floor: { x: 0, y: G.hy } };
+          const FAR = Math.max(W, H) * 1.6;
+          const FROM = {
+            top: { y: -FAR, rotationX: -14, rotationZ: -22 }, left: { x: -FAR * 1.5, rotationY: 12, rotationZ: 20 },
+            right: { x: FAR * 1.5, rotationY: -12, rotationZ: -17 }, floor: { y: FAR, rotationX: 14, rotationZ: 19 }
+          };
+          const BLUR_IN = { top: "0 96", left: "96 0", right: "96 0", floor: "0 96" };
+          /* wall, ui key slot, delay (s) */
+          const ORDER = [["left", 0, 0.05], ["top", 1, 0.10], ["right", 2, 0.15], ["floor", 3, 0.0]];
+          const FLY = 1.0;
+
+          const tl = gsap.timeline({ paused: true });
+          const W3 = {}, worlds = [];
+          ORDER.forEach(([wall, ki], n) => {
+            const key = keys[ki % keys.length];
+            const fill = document.createElement("div"); fill.className = ID + "-fill";
+            const mb = document.createElement("div"); mb.className = ID + "-fill";
+            const inner = document.createElement("div"); inner.className = ID + "-fill";
+            const stage = document.createElement("div"); stage.className = ID + "-stage";
+            stage.style.perspective = G.px + "px"; stage.style.perspectiveOrigin = (W / 2) + "px " + (H / 2) + "px";
+            const world = document.createElement("div"); world.className = ID + "-world";
+            world.style.left = (W / 2) + "px"; world.style.top = (H / 2) + "px";
+            const slot = document.createElement("div"); slot.className = ID + "-slot";
+            const o = document.createElement("div"); o.className = ID + "-orient"; o.style.transform = OR[wall];
+            slot.appendChild(o); world.appendChild(slot); stage.appendChild(world); inner.appendChild(stage); mb.appendChild(inner); fill.appendChild(mb); cam.appendChild(fill);
+            const shot = document.createElement("img");
+            shot.src = B.ui[key] || B.ui.home; shot.alt = "";
+            Object.assign(shot.style, { width: "393px", height: "852px", display: "block", objectFit: "cover" });
+            const ph = HF.phone(o, { photo: "front", content: shot, x: 0, y: 0, scale: (wall === "left" || wall === "right") ? G.ss : G.s, glow: null, shadow: "none", reflect: 1.2 });
+            /* key light from the upper left and a warm bounce on the screen glass */
+            const lit = document.createElement("div"); lit.className = ID + "-lit";
+            lit.innerHTML = '<i style="background:radial-gradient(120% 62% at 50% 0%, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent) 9%, transparent) 52%, transparent 82%);mix-blend-mode:screen"></i><i style="background:linear-gradient(0deg, color-mix(in srgb, var(--accent-deep) 22%, transparent), transparent 45%)"></i>';
+            ph.body.appendChild(lit);
+            const bounce = document.createElement("div"); bounce.className = ID + "-bounce"; ph.body.appendChild(bounce);
+            gsap.set(mb, { filter: "url(#" + ID + "-mbf-" + n + ")" });
+            W3[wall] = { n, fill, mb, inner, slot, world, ph, fe: "#" + ID + "-fe-" + n };
+            worlds.push(world);
+          });
+
+          /* fly in: expo-like power4 with a rolling settle on its own ease, blur along the travel axis only */
+          ORDER.forEach(([wall, , delay]) => {
+            const h = HOME[wall], w = W3[wall];
+            const base = { x: h.x, y: h.y, z: G.z0, rotationX: 0, rotationY: 0 };
+            const start = Object.assign({ rotationZ: 0 }, base, FROM[wall]);
+            gsap.set(w.slot, start);
+            tl.fromTo(w.slot, start, Object.assign({ duration: FLY, ease: "power4.out" }, base), delay);
+            tl.fromTo(w.slot, { rotationZ: FROM[wall].rotationZ }, { rotationZ: 0, duration: FLY, ease: "back.out(1.5)" }, delay);
+            tl.fromTo(w.fe, { attr: { stdDeviation: BLUR_IN[wall] } }, { attr: { stdDeviation: "0 0" }, duration: 0.8, ease: "power3.out" }, delay);
+            tl.set(w.mb, { filter: "none" }, delay + 0.85);
+            w.ph.sweep(tl, delay + 0.25, 1.4);
+          });
+
+          /* camera: push in with a slow roll */
+          gsap.set(worlds, { z: 0 });
+          tl.to(worlds, { z: 200, duration: 2.8, ease: "power1.inOut" }, 0);
+          tl.to(worlds, { z: 340, duration: 1.3, ease: "sine.in" }, 2.8);
+          gsap.set(cam, { rotation: -0.9 });
+          tl.to(cam, { rotation: 0.9, duration: 4.4, ease: "sine.inOut" }, 0);
+
+          /* centre text: blur in, hold, blur-cross to text2 */
+          const mkLine = (str, id) => {
+            const el = document.createElement("div"); el.className = ID + "-line"; el.id = ID + "-" + id;
+            const words = str.split(" ");
+            el.style.fontSize = HF.pick({ "16x9": 112, "9x16": 120, "1x1": 104, "4x5": 112, def: 112 }) + "px";
+            el.style.maxWidth = HF.pick({ "16x9": 1100, "9x16": 600, "1x1": 560, "4x5": 640, def: 1100 }) + "px";
+            el.style.gap = "0 0.26em";
+            words.forEach(w => { const s = document.createElement("span"); s.textContent = w; el.appendChild(s); });
+            textHost.appendChild(el); return el;
+          };
+          const l1 = mkLine(String(v.text), "l1");
+          const l2 = String(v.text2).trim() ? mkLine(String(v.text2), "l2") : null;
+          const SW = 2.35, PART = 3.0, END = 4.4;
+          tl.fromTo(l1.children, { opacity: 0, filter: "blur(14px)", y: 10 }, { opacity: 1, filter: "blur(0px)", y: 0, duration: 0.6, stagger: 0.09, ease: "power3.out" }, 0.25);
+          tl.to(l1, { scale: 1.05, duration: SW - 0.25, ease: "none" }, 0.25);
+          if (l2) {
+            tl.to(l1.children, { opacity: 0, filter: "blur(14px)", duration: 0.32, ease: "power2.in" }, SW);
+            tl.fromTo(l2.children, { opacity: 0, filter: "blur(14px)", y: 10 }, { opacity: 1, filter: "blur(0px)", y: 0, duration: 0.55, stagger: 0.08, ease: "power3.out" }, SW + 0.14);
+            tl.fromTo(l2, { scale: 0.97 }, { scale: 1.03, duration: END - SW, ease: "none" }, SW + 0.14);
+            if (v.fadeOut) tl.to(l2.children, { opacity: 0, filter: "blur(12px)", duration: 0.35, ease: "power2.in" }, END - 0.4);
+          } else if (v.fadeOut) {
+            tl.to(l1.children, { opacity: 0, filter: "blur(12px)", duration: 0.35, ease: "power2.in" }, END - 0.4);
+          }
+          gsap.set(l2 ? l2.children : [], { opacity: 0 });
+
+          /* the walls part, the floor phone tilts up and sweeps off with heavy blur */
+          const D = FAR * 0.9;
+          tl.to(W3.top.slot, { y: HOME.top.y - D, rotationX: 8, duration: 1.1, ease: "power2.in", immediateRender: false }, PART);
+          tl.to(W3.left.slot, { x: HOME.left.x - D * 1.1, rotationY: -8, duration: 1.1, ease: "power2.in", immediateRender: false }, PART);
+          tl.to(W3.right.slot, { x: HOME.right.x + D * 1.1, rotationY: 8, duration: 1.1, ease: "power2.in", immediateRender: false }, PART);
+          const F = W3.floor.slot, ft = PART - 0.05;
+          tl.set(W3.floor.mb, { filter: "url(#" + ID + "-mbf-3)" }, ft - 0.05);
+          tl.set(W3.floor.fe, { attr: { stdDeviation: "0 0" } }, ft - 0.05);
+          tl.set(W3.floor.fill, { rotation: 15 }, ft - 0.05);
+          tl.set(W3.floor.inner, { rotation: -15 }, ft - 0.05);
+          tl.to(F, { rotationX: -56, duration: 1.0, ease: "power2.inOut", immediateRender: false }, ft);
+          tl.to(F, { y: G.hy * 0.28, duration: 1.2, ease: "power2.inOut", immediateRender: false }, ft);
+          tl.to(F, { z: G.z0 + 470, duration: 0.9, ease: "power2.inOut", immediateRender: false }, ft + 0.05);
+          tl.to(F, { x: -FAR * 1.1, duration: 0.9, ease: "power2.in", immediateRender: false }, ft + 0.32);
+          tl.to(F, { rotationZ: -26, duration: 1.1, ease: "power2.inOut", immediateRender: false }, ft);
+          tl.fromTo(W3.floor.fe, { attr: { stdDeviation: "0 0" } }, { attr: { stdDeviation: "12 0" }, duration: 0.45, ease: "power1.in", immediateRender: false }, ft + 0.05);
+          tl.to(W3.floor.fe, { attr: { stdDeviation: "74 0" }, duration: 0.65, ease: "power2.in", immediateRender: false }, ft + 0.55);
+          /* fast-moving UI dims as it leaves, so no pixel strobes through text edges (flash-safe) */
+          ["top", "left", "right"].forEach(k => tl.to(W3[k].fill, { opacity: 0, duration: 0.8, ease: "power1.in", immediateRender: false }, PART + 0.1));
+          tl.to(W3.floor.fill, { opacity: 0, duration: 0.6, ease: "power1.in", immediateRender: false }, ft + 0.35);
+          W3.floor.ph.sweep(tl, ft + 0.1, 0.9);
+
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

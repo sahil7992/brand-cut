@@ -1,0 +1,206 @@
+/* realui.css - a generic messaging app (dark), rebuilt from research/v2/app screenshots + app-ui.md. Prefix ru-.
+   Design px = iOS logical points (phone screens are 393x852). Scale a component with the {zoom} option of HF.realui builders. */
+.ru { font-family: var(--font-ui); color: var(--app-text); font-size: 15px; line-height: 1.3; text-transform: none; font-style: normal; -webkit-font-smoothing: antialiased; }
+.ru * { box-sizing: border-box; text-transform: none; font-style: normal; }
+.ru .d { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.03em; }
+.ru svg { display: block; flex: none; }
+.ru .mut { color: var(--app-muted); } .ru .fnt { color: var(--app-faint); }
+.ru .num { font-variant-numeric: tabular-nums; }
+
+/* avatar: face photo over initials */
+.ru-av { position: relative; border-radius: 50%; overflow: hidden; background: #2a2a2a center / cover no-repeat; flex: none; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 500; color: var(--app-text-soft); box-shadow: 0 0 0 1px rgba(255,255,255,0.06); }
+
+/* ---------- thread card ---------- */
+.ru-thread { width: 360px; background: var(--app-ground); border: 1px solid var(--app-hair); border-radius: 20px; overflow: hidden; }
+.ru-thread .hd { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--app-hair); background: #0d0d0d; }
+.ru-thread .nm { font-family: var(--font-display); font-weight: 500; font-size: 18px; letter-spacing: -0.02em; line-height: 1.15; }
+.ru-thread .ch { font-size: 12.5px; color: var(--app-muted); margin-top: 2px; }
+.ru-thread .ch b { font-weight: 600; color: var(--app-text-soft); }
+.ru-thread .ai { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--app-text-soft); background: #1c1c1c; border: 1px solid var(--app-hair); border-radius: 999px; padding: 5px 10px; display: flex; gap: 6px; align-items: center; }
+.ru-thread .bd { padding: 14px 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.ru-msg { display: flex; flex-direction: column; max-width: 82%; }
+.ru-msg.in { align-self: flex-start; align-items: flex-start; }
+.ru-msg.out { align-self: flex-end; align-items: flex-end; }
+.ru-b { padding: 10px 13px; border-radius: 14px; font-size: 15px; line-height: 1.34; letter-spacing: -0.005em; border: 1px solid transparent; }
+.ru-msg.in .ru-b { background: var(--app-raised2); border-color: #2b2b2b; border-bottom-left-radius: 4px; }
+.ru-msg.out .ru-b { background: var(--app-raised); border-color: var(--app-hair); border-bottom-right-radius: 4px; }
+.ru-msg.out.me .ru-b { border-right: 2px solid var(--app-accent); }
+.ru-meta { font-size: 11.5px; color: var(--app-faint); margin: 4px 4px 6px; display: flex; align-items: center; gap: 5px; }
+.ru-typing { display: inline-flex; gap: 4px; align-items: center; height: 17px; padding: 0 2px; }
+.ru-typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--app-muted); display: block; }
+.ru-stamp { font-size: 11.5px; color: var(--app-green); font-weight: 600; }
+.ru-composer { margin: 0 14px 14px; border: 1px solid var(--app-hair); border-radius: 16px; padding: 11px 14px; color: var(--app-faint); font-size: 14.5px; display: flex; justify-content: space-between; align-items: center; background: #0e0e0e; }
+
+/* ---------- lock-screen notification ---------- */
+.ru-notif { width: 366px; border-radius: 24px; padding: 12px 14px 13px 12px; display: flex; gap: 11px; align-items: flex-start; background: rgba(44, 44, 46, 0.72); backdrop-filter: blur(24px) saturate(1.4); -webkit-backdrop-filter: blur(24px) saturate(1.4); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); color: #fff; }
+.ru-notif .tx { flex: 1; min-width: 0; }
+.ru-notif .top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.ru-notif .who { font-weight: 600; font-size: 15.5px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ru-notif .when { font-size: 12.5px; color: rgba(255, 255, 255, 0.55); white-space: nowrap; }
+.ru-notif .ch { font-size: 12px; color: rgba(255, 255, 255, 0.5); margin-top: 1px; }
+.ru-notif .msg { font-size: 15px; line-height: 1.28; color: rgba(255, 255, 255, 0.88); margin-top: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---------- Home ---------- */
+.ru-homehd { display: flex; justify-content: space-between; align-items: flex-start; padding: 0 4px; }
+.ru-homehd .t { font-family: var(--font-display); font-weight: 500; font-size: 34px; letter-spacing: -0.04em; line-height: 1.05; }
+.ru-homehd .s { font-size: 15px; color: var(--app-muted); margin-top: 5px; }
+.ru-next { position: relative; width: 358px; border-radius: 22px; padding: 22px 20px 20px; color: var(--app-solid); overflow: hidden;
+  background: radial-gradient(90% 130% at 14% 0%, rgba(158, 72, 80, 0.95), transparent 52%), linear-gradient(150deg, #9e4850 0%, #2e1014 78%); }
+.ru-next::after { content: ""; position: absolute; inset: 0; background: url("tex/grain-v2.png") 0 0 / 256px 256px; opacity: 0.07; mix-blend-mode: overlay; pointer-events: none; }
+.ru-next::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(247, 237, 228, 0.35), transparent); z-index: 1; }
+.ru-next .lbl { display: flex; justify-content: space-between; font-size: 15px; color: rgba(247, 237, 228, 0.72); }
+.ru-next .lbl .st { color: rgba(247, 237, 228, 0.5); }
+.ru-next .nm { font-family: var(--font-display); font-weight: 500; font-size: 46px; letter-spacing: -0.045em; line-height: 1; margin: 12px 0 8px; }
+.ru-next .wh { font-weight: 600; font-size: 17px; letter-spacing: -0.01em; }
+.ru-next .row { display: flex; align-items: center; gap: 22px; margin-top: 18px; position: relative; z-index: 2; }
+.ru-btn { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 20px; border-radius: 12px; font-weight: 600; font-size: 16px; letter-spacing: -0.01em; white-space: nowrap; }
+.ru-btn.cream { background: var(--app-solid); color: var(--app-on-solid); }
+.ru-btn.ghost { padding: 0; color: var(--app-solid); }
+.ru-btn.out { border: 1px solid var(--app-hair); color: var(--app-text); background: transparent; }
+.ru-btn.rose { background: #c96169; color: #2a1215; }
+.ru-btn.green { background: #2dc08e; color: #04271c; }
+.ru-sect { font-family: var(--font-display); font-weight: 500; font-size: 22px; letter-spacing: -0.03em; padding: 0 4px; }
+.ru-stats { width: 358px; background: #101010; border: 1px solid var(--app-hair); border-radius: 18px; padding: 0 16px; }
+.ru-stats .r { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid #222; }
+.ru-stats .r:last-child { border-bottom: 0; }
+.ru-stats .ic { width: 26px; display: flex; justify-content: center; }
+.ru-stats .n { font-weight: 600; font-size: 19px; width: 24px; text-align: left; }
+.ru-stats .l { flex: 1; font-size: 19px; color: var(--app-text-soft); letter-spacing: -0.02em; line-height: 1.15; }
+.ru-stats .l.rose { color: #e0636e; }
+.ru-stats .l small { display: flex; align-items: center; gap: 7px; font-size: 14.5px; color: var(--app-muted); margin-top: 4px; letter-spacing: 0; }
+.ru-stats .l small b { color: var(--app-text); font-weight: 600; }
+.ru-tabbar { display: flex; justify-content: space-between; width: 358px; padding: 9px 10px 8px; border-radius: 30px; background: rgba(18, 18, 18, 0.9); border: 1px solid #262626; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55); backdrop-filter: blur(20px); }
+.ru-tabbar .tb { width: 66px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 500; color: var(--app-muted); }
+.ru-tabbar .tb.on { color: var(--app-text); font-weight: 600; }
+.ru-gone { padding: 0 4px; }
+.ru-gone .r { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-top: 1px solid var(--app-hair-soft); }
+.ru-gone .r b { font-family: var(--font-display); font-weight: 500; font-size: 20px; letter-spacing: -0.02em; }
+.ru-gone .r p { margin: 3px 0 0; font-size: 14.5px; color: var(--app-muted); }
+
+/* ---------- Showing brief sheet ---------- */
+.ru-sheet { width: 393px; background: #161616; border-radius: 32px 32px 0 0; padding: 12px 22px 26px; box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5); border-top: 1px solid #2a2a2a; }
+.ru-sheet .grab { width: 40px; height: 5px; border-radius: 3px; background: #3a3a3a; margin: 0 auto 18px; }
+.ru-sheet .ttl { display: flex; justify-content: space-between; align-items: baseline; }
+.ru-sheet .ttl h2 { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 32px; letter-spacing: -0.04em; }
+.ru-sheet .ttl span { font-size: 17px; color: var(--app-text); }
+.ru-sheet .ok { color: var(--app-green); font-size: 17px; display: flex; align-items: center; gap: 8px; margin: 14px 0 6px; }
+.ru-sheet .big { font-family: var(--font-display); font-weight: 500; font-size: 40px; letter-spacing: -0.045em; margin: 8px 0 2px; }
+.ru-sheet .sub { font-size: 16px; color: var(--app-muted); }
+.ru-sheet h3 { margin: 20px 0 8px; font-family: var(--font-display); font-weight: 500; font-size: 21px; letter-spacing: -0.03em; }
+.ru-sheet ul { margin: 0; padding: 0; list-style: none; }
+.ru-sheet li { position: relative; padding-left: 20px; font-size: 16.5px; line-height: 1.32; color: var(--app-text-soft); margin: 7px 0; }
+.ru-sheet li::before { content: ""; position: absolute; left: 4px; top: 0.62em; width: 5px; height: 5px; border-radius: 50%; background: var(--app-dim); }
+.ru-sheet .fn { font-size: 13.5px; color: var(--app-faint); margin-top: 12px; line-height: 1.35; }
+.ru-sheet .acts { display: flex; gap: 10px; margin-top: 18px; }
+.ru-sheet .acts .ru-btn { flex: 1; justify-content: center; height: 50px; }
+.ru-hl { background: rgba(201, 97, 105, 0.18); box-shadow: 0 0 0 2px rgba(201, 97, 105, 0.0); border-radius: 5px; padding: 0 3px; margin: 0 -3px; color: var(--app-text); }
+
+/* ---------- Calendar (web, week time-grid) ---------- */
+.ru-cal { width: 1160px; background: var(--app-ground); border: 1px solid var(--app-hair); border-radius: 16px; padding: 22px 24px 0; overflow: hidden; }
+.ru-cal .top { display: flex; justify-content: space-between; align-items: flex-start; }
+.ru-cal h1 { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 26px; letter-spacing: -0.03em; }
+.ru-cal .sub { font-size: 12.5px; color: var(--app-muted); margin-top: 4px; }
+.ru-cal .bar { display: flex; align-items: center; gap: 10px; margin: 18px 0 14px; }
+.ru-cal .chip { height: 34px; padding: 0 13px; border: 1px solid var(--app-hair); border-radius: 9px; display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 500; color: var(--app-text-soft); background: #0e0e0e; }
+.ru-cal .chip.rose { background: #c96169; border-color: #c96169; color: #2a1215; font-weight: 600; }
+.ru-cal .seg { margin-left: auto; display: flex; background: #0e0e0e; border: 1px solid var(--app-hair); border-radius: 999px; padding: 3px; gap: 2px; font-size: 13px; color: var(--app-muted); }
+.ru-cal .seg span { padding: 5px 14px; border-radius: 999px; } .ru-cal .seg .on { background: var(--app-text); color: #111; font-weight: 600; }
+.ru-cal .range { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 14.5px; color: var(--app-text-soft); }
+.ru-cal .range .sq { width: 30px; height: 30px; border: 1px solid var(--app-hair); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.ru-grid { position: relative; border: 1px solid var(--app-hair); border-radius: 12px 12px 0 0; border-bottom: 0; overflow: hidden; display: grid; grid-template-columns: 54px repeat(7, 1fr); background: #0b0b0b; }
+.ru-grid .dh { height: 66px; border-left: 1px solid var(--app-hair); border-bottom: 1px solid var(--app-hair); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 13.5px; color: var(--app-text-soft); gap: 4px; }
+.ru-grid .dh b { font-weight: 500; font-size: 19px; color: var(--app-text); }
+.ru-grid .dh.today { color: #e0636e; } .ru-grid .dh.today b { color: #e0636e; }
+.ru-grid .tc { border-left: 0; position: relative; }
+.ru-grid .tc .h { position: absolute; right: 8px; font-size: 11.5px; color: var(--app-muted); transform: translateY(-50%); }
+.ru-grid .col { position: relative; border-left: 1px solid var(--app-hair); background-image: repeating-linear-gradient(180deg, transparent 0, transparent 85px, #1a1a1a 85px, #1a1a1a 86px); }
+.ru-grid .col.today { background-color: rgba(120, 12, 20, 0.16); }
+.ru-grid .col.off { background-image: repeating-linear-gradient(135deg, #0b0b0b 0 6px, #141414 6px 7px); }
+.ru-ev { position: absolute; left: 4px; right: 4px; border-radius: 7px; padding: 5px 7px; font-size: 11.5px; line-height: 1.2; overflow: hidden; border: 1px solid var(--c); background: color-mix(in srgb, var(--c) 30%, #0b0b0b); color: #fff; }
+.ru-ev .tm { display: flex; justify-content: space-between; font-size: 10.5px; color: rgba(255, 255, 255, 0.78); font-weight: 600; }
+.ru-ev .tm i { font-style: normal; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 0 1 auto; margin-left: 6px; }
+.ru-ev .tm span { white-space: nowrap; }
+.ru-ev b { display: block; font-weight: 700; font-size: 12.5px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ru-ev span.ad { display: block; color: rgba(255, 255, 255, 0.7); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ru-ev.aw { border-style: dashed; border-width: 2px; background: color-mix(in srgb, var(--c) 14%, #0b0b0b); }
+.ru-ev.big { padding: 8px 10px; font-size: 14px; }
+.ru-ev.new { box-shadow: 0 0 0 2px rgba(255,255,255,0.0); }
+
+/* ---------- Listing detail panel (web, right side panel) ---------- */
+.ru-listing { width: 480px; background: #161616; border: 1px solid var(--app-hair); border-radius: 18px; overflow: hidden; }
+.ru-listing .ph { height: 250px; background: #222 center / cover no-repeat; position: relative; }
+.ru-listing .ph::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 90px; background: linear-gradient(180deg, transparent, #161616); }
+.ru-listing .hdr { padding: 6px 24px 16px; border-bottom: 1px solid var(--app-hair); position: relative; }
+.ru-listing .act { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--app-green); font-weight: 500; }
+.ru-listing .act i { width: 7px; height: 7px; border-radius: 50%; background: var(--app-green); }
+.ru-listing h2 { margin: 6px 0 4px; font-family: var(--font-display); font-weight: 500; font-size: 28px; letter-spacing: -0.035em; }
+.ru-listing .loc { font-size: 14px; color: var(--app-muted); }
+.ru-listing .loc b { color: var(--app-text); font-weight: 600; }
+.ru-listing .facts { display: flex; gap: 22px; padding: 16px 24px; font-size: 14.5px; color: var(--app-text-soft); border-bottom: 1px solid var(--app-hair); }
+.ru-listing .facts div { display: flex; align-items: center; gap: 8px; }
+.ru-listing h4 { margin: 0; padding: 18px 24px 6px; font-size: 15px; font-weight: 600; }
+.ru-listing .rows { padding: 0 24px 10px; }
+.ru-fact { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; margin: 0 -14px; border-radius: 12px; font-size: 15px; color: var(--app-muted); border: 1px solid transparent; }
+.ru-fact b { color: var(--app-text); font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 9px; }
+.ru-fact.hl { background: rgba(247, 237, 228, 0.1); border-color: rgba(247, 237, 228, 0.28); color: var(--app-solid); }
+.ru-listing .foot { padding: 14px 24px 20px; display: flex; justify-content: flex-end; border-top: 1px solid var(--app-hair); }
+
+/* ---------- Application row, payment, receipt, approval ---------- */
+.ru-doc { width: 380px; background: #161616; border: 1px solid var(--app-hair); border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; }
+.ru-doc .ic { width: 44px; height: 44px; border-radius: 12px; background: #1f1f1f; border: 1px solid #2c2c2c; display: flex; align-items: center; justify-content: center; }
+.ru-doc .t { font-weight: 600; font-size: 17px; letter-spacing: -0.015em; }
+.ru-doc .s { font-size: 13.5px; color: var(--app-muted); margin-top: 3px; display: flex; align-items: center; gap: 6px; }
+.ru-doc .st { margin-left: auto; color: var(--app-green); font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 6px; }
+.ru-pay { width: 460px; background: #161616; border: 1px solid var(--app-hair); border-radius: 18px; overflow: hidden; }
+.ru-pay .hd { padding: 20px 24px 14px; border-bottom: 1px solid var(--app-hair); }
+.ru-pay h2 { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 26px; letter-spacing: -0.035em; }
+.ru-pay .hd p { margin: 4px 0 0; font-size: 13.5px; color: var(--app-muted); }
+.ru-pay .bd { padding: 16px 24px 4px; }
+.ru-pay label { display: block; font-size: 13px; color: var(--app-muted); margin: 0 0 8px; }
+.ru-pay .fld { height: 46px; border: 1px solid var(--app-hair); background: #1b1b1b; border-radius: 11px; display: flex; align-items: center; gap: 10px; padding: 0 14px; font-size: 15.5px; margin-bottom: 16px; }
+.ru-pay .opts { border: 1px solid var(--app-hair); border-radius: 13px; overflow: hidden; margin-bottom: 16px; }
+.ru-pay .opt { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-bottom: 1px solid var(--app-hair); }
+.ru-pay .opt:last-child { border-bottom: 0; }
+.ru-pay .opt.on { background: rgba(247, 237, 228, 0.07); }
+.ru-pay .opt .t { font-size: 15px; font-weight: 600; } .ru-pay .opt .s { font-size: 12.5px; color: var(--app-muted); margin-top: 2px; }
+.ru-pay .opt .p { margin-left: auto; color: var(--app-text-soft); font-size: 14px; } 
+.ru-pay .opt .rd { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid #4a4a4a; position: relative; flex: none; }
+.ru-pay .opt.on .rd { border-color: var(--app-solid); } .ru-pay .opt.on .rd::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--app-solid); }
+.ru-pay .ft { padding: 14px 24px 20px; border-top: 1px solid var(--app-hair); display: flex; justify-content: flex-end; }
+.ru-pay .ru-btn.link { background: #ededea; color: #111; height: 42px; border-radius: 10px; font-size: 15px; }
+.ru-rcpt { width: 460px; background: #161616; border: 1px solid var(--app-hair); border-radius: 18px; padding: 22px 24px; }
+.ru-rcpt .k { font-size: 14px; color: var(--app-muted); display: flex; justify-content: space-between; align-items: center; }
+.ru-rcpt .st { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 7px; }
+.ru-rcpt .amt { font-family: var(--font-display); font-weight: 500; font-size: 56px; letter-spacing: -0.05em; margin: 8px 0 4px; }
+.ru-rcpt .who { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--app-text-soft); margin-bottom: 14px; }
+.ru-rcpt .tl { border-top: 1px solid var(--app-hair); padding-top: 14px; display: flex; flex-direction: column; gap: 14px; }
+.ru-rcpt .tl div { display: flex; align-items: center; gap: 12px; font-size: 15px; }
+.ru-rcpt .tl small { margin-left: auto; color: var(--app-muted); font-size: 13px; }
+.ru-rcpt .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--app-dim); }
+.ru-appr { width: 372px; background: #101010; border: 1px solid var(--app-hair); border-radius: 22px; padding: 18px 18px 16px; }
+.ru-appr .who { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 14px; }
+.ru-appr .who b { font-family: var(--font-display); font-weight: 500; font-size: 21px; letter-spacing: -0.025em; margin-top: 8px; }
+.ru-appr .who small { font-size: 13px; color: var(--app-muted); }
+.ru-appr .ask { background: var(--app-raised2); border: 1px solid #2b2b2b; border-radius: 14px 14px 14px 4px; padding: 11px 14px; font-size: 15.5px; line-height: 1.32; max-width: 88%; }
+.ru-appr .lab { font-size: 12.5px; color: var(--app-muted); margin: 16px 2px 7px; }
+.ru-appr .draft { border: 1px solid var(--app-hair); background: #161616; border-radius: 16px; padding: 12px 14px; font-size: 15.5px; line-height: 1.34; }
+.ru-appr .acts { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; }
+.ru-appr .acts .dec { color: #e0636e; font-weight: 500; font-size: 16px; padding-left: 4px; }
+
+/* ---------- listing chip (pins on aerials) ---------- */
+.ru-chip { display: flex; gap: 10px; align-items: center; padding: 7px 14px 7px 7px; border-radius: 16px; background: rgba(16, 16, 16, 0.92); border: 1px solid #2b2b2b; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); }
+.ru-chip .th { width: 46px; height: 46px; border-radius: 11px; background: #222 center / cover no-repeat; }
+.ru-chip .a { font-weight: 600; font-size: 14.5px; letter-spacing: -0.01em; white-space: nowrap; }
+.ru-chip .p { font-size: 13.5px; color: var(--app-muted); margin-top: 1px; white-space: nowrap; }
+.ru-chip .p b { color: var(--app-text); font-weight: 600; font-family: var(--font-display); }
+
+/* ---------- full phone screens ---------- */
+.ru-screen { position: relative; width: 393px; height: 852px; background: #000; overflow: hidden; }
+.ru-status { position: absolute; left: 0; right: 0; top: 0; height: 54px; display: flex; justify-content: space-between; align-items: center; padding: 6px 34px 0 52px; font-weight: 600; font-size: 17px; z-index: 5; }
+.ru-status .rt { display: flex; gap: 6px; align-items: center; }
+.ru-home-ind { position: absolute; left: 50%; bottom: 8px; width: 138px; height: 5px; border-radius: 3px; background: #fff; transform: translateX(-50%); z-index: 6; }
+.ru-lock { background: linear-gradient(180deg, #2a1318 0%, #14090c 55%, #0a0506 100%); }
+.ru-lock .date { position: absolute; top: 62px; width: 100%; text-align: center; font-size: 19px; font-weight: 500; color: rgba(255, 255, 255, 0.75); }
+.ru-lock .time { position: absolute; top: 80px; width: 100%; text-align: center; font-family: var(--font-display); font-weight: 600; font-size: 96px; letter-spacing: -0.04em; color: rgba(255, 255, 255, 0.92); line-height: 1.1; }
+.ru-lock .stack { position: absolute; left: 13px; right: 13px; top: 214px; display: flex; flex-direction: column; gap: 8px; }

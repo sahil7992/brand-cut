@@ -1,0 +1,177 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"rows","type":"string","label":"Checklist rows, | separated","default":"Application sent|Viewed|Signed|Fee requested|Paid"},
+  {"id":"times","type":"string","label":"Row times, | separated (one per row)","default":"11:20 AM|11:26 AM|11:38 AM|11:42 AM|11:44 AM"},
+  {"id":"fixRow","type":"number","label":"Row that waits, then flips to done (0-based)","default":2,"min":1,"max":3,"step":1},
+  {"id":"waiting","type":"string","label":"Waiting text on that row","default":"Waiting on signature"},
+  {"id":"signer","type":"string","label":"Applicant (blank = first BRAND.cast lead)","default":""},
+  {"id":"photo","type":"string","label":"Plate photo path (blank = BRAND.photos.hero)","default":""},
+  {"id":"fadeOut","type":"boolean","label":"Blur out at the end","default":true}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-ui); }
+        #__ID__-plate { position: absolute; left: -4%; top: -4%; width: 108%; height: 108%; background: center / cover no-repeat; filter: brightness(.55) saturate(.85) blur(4px); }
+        #__ID__-shade { position: absolute; inset: 0; background: radial-gradient(90% 80% at 50% 45%, rgba(0,0,0,.05), rgba(0,0,0,.55) 100%); }
+        #__ID__-drift, #__ID__-cam { position: absolute; inset: 0; }
+        #__ID__-stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; perspective: 2000px; perspective-origin: 50% 40%; }
+        #__ID__-slab { position: absolute; left: 0; top: 0; border-radius: 34px; transform-style: preserve-3d; will-change: transform; }
+        #__ID__-contact { position: absolute; left: 6%; right: 6%; bottom: -30px; height: 70px; border-radius: 50%; background: rgba(0,0,0,.6); filter: blur(32px); }
+        #__ID__-glass { position: absolute; inset: 0; border-radius: 34px; overflow: hidden;
+          background: linear-gradient(180deg, rgba(255,255,255,.17), rgba(255,255,255,.05) 40%), rgba(14,14,14,.55);
+          backdrop-filter: blur(24px) saturate(1.4) brightness(1.1);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -12px 28px rgba(0,0,0,.25), 0 36px 90px rgba(0,0,0,.5); }
+        #__ID__-edge { position: absolute; inset: 0; border-radius: 34px; padding: 2.5px; pointer-events: none;
+          background: linear-gradient(150deg, rgba(255,255,255,.9), rgba(255,255,255,.16) 32%, rgba(255,255,255,.1) 66%, rgba(255,255,255,.5));
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        #__ID__-sheen { position: absolute; top: -10%; bottom: -10%; left: -160px; width: 130px; opacity: 0; pointer-events: none; transform: skewX(-18deg);
+          background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.2) 50%, rgba(255,255,255,0)); filter: blur(12px); }
+        #__ID__-card { position: absolute; left: 14px; top: 14px; border-radius: 22px; overflow: hidden; background: var(--app-raised); border: 1px solid var(--app-hair); color: var(--app-text); }
+        #__ID__-hd { position: absolute; left: 18px; right: 18px; top: 18px; height: 76px; }
+        #__ID__-hd .ru { position: absolute; left: 0; top: 0; width: 100%; background: var(--app-raised2); }
+        #__ID__-hdB { opacity: 0; }
+        #__ID__-rows { position: absolute; left: 0; right: 0; }
+        .__ID__-row { position: absolute; left: 0; right: 0; height: 76px; display: flex; align-items: center; gap: 18px; padding: 0 24px; border-top: 1px solid var(--app-hair-soft, var(--app-hair)); opacity: 0; }
+        .__ID__-bar { position: absolute; inset: 0; transform-origin: 0 50%; opacity: 0; }
+        .__ID__-bar.g { background: linear-gradient(90deg, color-mix(in srgb, var(--app-green) 24%, transparent), transparent 85%); }
+        .__ID__-bar.a { background: linear-gradient(90deg, color-mix(in srgb, var(--app-amber) 22%, transparent), transparent 85%); }
+        .__ID__-mk { position: relative; flex: none; width: 38px; height: 38px; }
+        .__ID__-mk > * { position: absolute; inset: 0; }
+        .__ID__-ring { border-radius: 50%; border: 2px solid var(--app-dim); }
+        .__ID__-done { border-radius: 50%; background: var(--app-green); display: flex; align-items: center; justify-content: center; opacity: 0; box-shadow: inset 0 -3px 6px rgba(0,0,0,.2), inset 0 2px 0 rgba(255,255,255,.35); }
+        .__ID__-spin { opacity: 0; }
+        .__ID__-lb { position: relative; font: 500 25px/1 var(--font-display); letter-spacing: var(--track-display); }
+        .__ID__-tx { position: relative; margin-left: auto; font-size: 18px; white-space: nowrap; }
+        .__ID__-tx span { position: absolute; right: 0; top: 50%; transform: translateY(-50%); white-space: nowrap; }
+        .__ID__-tw { color: var(--app-amber); font-weight: 600; opacity: 0; }
+        .__ID__-tt { color: var(--app-muted); opacity: 0; }
+        #__ID__-chip { position: absolute; height: 72px; border-radius: 36px; display: flex; align-items: center; white-space: nowrap; overflow: hidden; opacity: 0; color: #fff;
+          background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.05)), rgba(20,16,14,.6);
+          backdrop-filter: blur(20px) saturate(1.5) brightness(1.12);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.6), inset 0 -10px 24px rgba(0,0,0,.18), 0 26px 60px rgba(0,0,0,.5); }
+        #__ID__-chiptint { position: absolute; inset: 0; border-radius: 36px; opacity: 0; background: color-mix(in srgb, var(--ok) 42%, transparent); }
+        #__ID__-chipedge { position: absolute; inset: 0; border-radius: 36px; padding: 2.5px; pointer-events: none;
+          background: linear-gradient(155deg, rgba(255,255,255,.9), rgba(255,255,255,.18) 35%, rgba(255,255,255,.12) 65%, rgba(255,255,255,.55));
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        #__ID__-mark { flex: none; width: 54px; height: 54px; margin-left: 10px; border-radius: 50%; background: var(--paper); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 8px rgba(0,0,0,.16), 0 4px 14px rgba(0,0,0,.3); z-index: 1; }
+        #__ID__-mark img { width: 32px; height: 32px; }
+        #__ID__-sts { position: relative; flex: none; width: 200px; height: 72px; margin-left: 16px; }
+        .__ID__-st { position: absolute; left: 0; top: 0; height: 72px; display: flex; align-items: center; gap: 16px; font: 600 33px/1 var(--font-display); letter-spacing: var(--track-display); opacity: 0; }
+        .__ID__-st i { flex: none; width: 15px; height: 15px; border-radius: 50%; }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <div id="__ID__-plate"></div><div id="__ID__-shade"></div>
+        <div id="__ID__-drift"><div id="__ID__-cam"><div id="__ID__-stage">
+          <div id="__ID__-slab">
+            <div id="__ID__-contact"></div>
+            <div id="__ID__-glass"><div id="__ID__-sheen"></div></div>
+            <div id="__ID__-card"><div id="__ID__-hd"></div><div id="__ID__-rows"></div></div>
+            <div id="__ID__-edge"></div>
+          </div></div>
+          <div id="__ID__-chip"><div id="__ID__-chiptint"></div><div id="__ID__-mark"><img alt=""></div><div id="__ID__-sts">
+            <div class="__ID__-st" id="__ID__-s0"><i style="background:var(--info)"></i>Sent</div>
+            <div class="__ID__-st" id="__ID__-s1"><i style="background:var(--info)"></i>Delivered</div>
+            <div class="__ID__-st" id="__ID__-s2"><i style="background:var(--warn)"></i>Viewed</div>
+            <div class="__ID__-st" id="__ID__-s3"><i style="background:var(--ok)"></i>Signed</div>
+          </div><div id="__ID__-chipedge"></div></div>
+        </div></div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, RU = window.HF.realui, safe = B.format.safe;
+          const v = window.__hyperframes.getVariables();
+          const $ = (s) => document.getElementById(ID + "-" + s);
+          const rows = String(v.rows).split("|"), times = String(v.times).split("|");
+          const n = rows.length, fix = Math.min(n - 2, Math.max(1, +v.fixRow));
+          const signer = v.signer || B.cast.leads[0].name;
+          $("plate").style.backgroundImage = "url('" + (v.photo || B.photos.hero) + "')";
+          if (B.partners.docusign) $("mark").firstChild.src = B.partners.docusign; else $("mark").innerHTML = RU.icons.doc("#1a1a1a", 30);
+
+          // ---- header: the real application row (waiting, then signed)
+          const hA = RU.application({ title: "Rental application", sub: signer, status: "Waiting", via: "DocuSign" }, { style: { width: "100%" } });
+          const hB = RU.application({ title: "Rental application", sub: signer, status: "Signed", via: "DocuSign" }, { style: { width: "100%" } });
+          hA.querySelector(".st").innerHTML = RU.icons.clock("#e5b568", 18) + "Waiting"; hA.querySelector(".st").style.color = "var(--app-amber)";
+          hB.id = ID + "-hdB"; $("hd").append(hA, hB);
+          hB.style.opacity = 0;
+
+          // ---- rows
+          const RH = 76, rowsTop = 18 + 76 + 18, CW = 620;
+          const holder = $("rows"); holder.style.top = rowsTop + "px";
+          const tick = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#04271c" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path class="' + ID + '-tk" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1" d="M5 12.5l5 5L19.500 7"/></svg>';
+          const spin = '<svg viewBox="0 0 38 38" fill="none" stroke="var(--app-amber)" stroke-width="3" stroke-linecap="round"><circle cx="19" cy="19" r="16" stroke="color-mix(in srgb, var(--app-amber) 25%, transparent)"/><path d="M19 3a16 16 0 0 1 16 16"/></svg>';
+          const R = rows.map((label, i) => {
+            const el = document.createElement("div"); el.className = ID + "-row"; el.style.top = i * RH + "px";
+            el.innerHTML = '<div class="' + ID + '-bar g"></div><div class="' + ID + '-bar a"></div><div class="' + ID + '-mk"><div class="' + ID + '-ring"></div><div class="' + ID + '-spin">' + spin + '</div><div class="' + ID + '-done">' + tick + '</div></div><div class="' + ID + '-lb">' + label + '</div><div class="' + ID + '-tx"><span class="' + ID + '-tw">' + (i === fix ? v.waiting : "") + '</span><span class="' + ID + '-tt">' + (times[i] || "") + "</span></div>";
+            holder.appendChild(el);
+            const q = (c) => el.querySelector("." + ID + "-" + c);
+            return { el, g: q("bar") , a: el.querySelectorAll("." + ID + "-bar")[1], ring: q("ring"), spin: q("spin"), done: q("done"), tk: q("tk"), tw: q("tw"), tt: q("tt") };
+          });
+          const CH = rowsTop + n * RH + 6;
+          const card = $("card"); card.style.width = CW + "px"; card.style.height = CH + "px";
+          const NW = CW + 28, NH = CH + 28;
+          const slab = $("slab"); slab.style.width = NW + "px"; slab.style.height = NH + "px";
+          const S = HF.land ? (H - 190) / NH : 0.94 * Math.min((W - safe.left - safe.right) / NW, (H - safe.top - safe.bottom - 90) / NH);
+          const cx0 = (safe.left + (W - safe.right)) / 2, cy0 = (safe.top + (H - safe.bottom)) / 2 + (HF.land ? 40 : 40);
+          const stage = $("stage"); stage.style.width = NW + "px"; stage.style.height = NH + "px";
+          const sx = Math.round(cx0 - (NW * S) / 2), sy = Math.round(cy0 - (NH * S) / 2);
+          stage.style.left = sx + "px"; stage.style.top = sy + "px"; stage.style.transform = "scale(" + S + ")";
+          // chip hangs off the top-right corner of the slab
+          const chip = $("chip"), chipW = 10 + 54 + 16 + 200 + 34, cs = HF.land ? 1.35 : Math.min(1.3, S * 0.95);
+          chip.style.width = chipW + "px"; chip.style.transformOrigin = "100% 100%"; chip.style.transform = "scale(" + cs + ")";
+          chip.style.left = Math.round(sx + NW * S - chipW * cs + (HF.land ? 40 : 0)) + "px"; chip.style.top = Math.round(sy - 72 * cs * 0.62) + "px";
+
+          // ---- timeline
+          const tl = gsap.timeline({ paused: true });
+          const END = 5.0, FIX = 3.05, ST = [0.85, 1.25, 1.65], WAIT = 1.85;
+          tl.fromTo($("plate"), { opacity: 0, scale: 1.1 }, { opacity: 1, scale: 1.0, duration: END, ease: "sine.out" }, 0);
+          tl.fromTo($("shade"), { opacity: 0 }, { opacity: 1, duration: 0.6 }, 0);
+          tl.fromTo(slab, { y: 150, rotationX: 12, opacity: 0, filter: "blur(12px)" }, { y: 0, rotationX: 3, opacity: 1, filter: "blur(0px)", duration: 0.9, ease: "power4.out" }, 0.1);
+          tl.to(slab, { rotationX: 0, duration: 3.6, ease: "sine.inOut" }, 1.0);
+          tl.fromTo($("sheen"), { x: 0, opacity: 0 }, { x: NW + 220, opacity: 1, duration: 1.0, ease: "power2.inOut" }, 0.4);
+          tl.set($("sheen"), { opacity: 0 }, 1.5);
+          const doneAt = (r, t) => {
+            tl.set(r.ring, { opacity: 0 }, t);
+            tl.fromTo(r.done, { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)" }, t);
+            tl.to(r.tk, { strokeDashoffset: 0, duration: 0.3, ease: "power2.out" }, t + 0.08);
+            tl.fromTo(r.g, { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.7, ease: "expo.out" }, t);
+            tl.fromTo(r.tt, { opacity: 0 }, { opacity: 1, duration: 0.3 }, t + 0.1);
+          };
+          R.forEach((r, i) => tl.fromTo(r.el, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.55 + i * 0.1));
+          for (let i = 0; i < fix; i++) doneAt(R[i], i === 0 ? ST[0] + 0.1 : ST[i] + 0.1);
+          // the waiting row
+          const w = R[fix];
+          tl.fromTo(w.spin, { opacity: 0 }, { opacity: 1, duration: 0.3 }, WAIT);
+          tl.fromTo(w.spin, { rotation: 0 }, { rotation: (FIX - WAIT + 0.4) * 300, duration: FIX - WAIT + 0.4, ease: "none" }, WAIT);
+          tl.fromTo(w.a, { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.7, ease: "expo.out" }, WAIT);
+          tl.fromTo(w.tw, { opacity: 0 }, { opacity: 1, duration: 0.3 }, WAIT + 0.1);
+          // fix: the waiting row flips to done
+          tl.to(w.a, { opacity: 0, duration: 0.3 }, FIX);
+          tl.to(w.tw, { opacity: 0, duration: 0.2 }, FIX);
+          tl.to(w.spin, { opacity: 0, duration: 0.15 }, FIX);
+          doneAt(w, FIX + 0.05);
+          tl.to(hA, { opacity: 0, duration: 0.2, ease: "power2.in" }, FIX);
+          tl.to(hB, { opacity: 1, duration: 0.25, ease: "power2.out" }, FIX + 0.05);
+          doneAt(R[fix + 1], FIX + 0.6);
+          // DocuSign chip steps Sent, Delivered, Viewed, Signed
+          tl.fromTo(chip, { y: 30, opacity: 0, filter: "blur(10px)" }, { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.6, ease: "expo.out" }, 0.6);
+          const sts = [ST[0], ST[1], ST[2], FIX];
+          sts.forEach((t0, i) => {
+            const e = $("s" + i);
+            tl.fromTo(e, { opacity: 0, y: 22, filter: "blur(5px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.3, ease: "power3.out" }, t0);
+            if (i < 3) tl.to(e, { opacity: 0, y: -22, filter: "blur(5px)", duration: 0.22, ease: "power2.in" }, sts[i + 1] - 0.02);
+          });
+          tl.to($("chiptint"), { opacity: 1, duration: 0.4, ease: "power2.out" }, FIX);
+          tl.fromTo($("cam"), { scale: 1.03, transformOrigin: "50% 50%" }, { scale: 1.0, duration: END, ease: "sine.out" }, 0);
+          tl.fromTo($("drift"), { y: 0 }, { y: -12, duration: END, ease: "sine.out" }, 0);
+          if (v.fadeOut) tl.fromTo($("drift"), { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(10px)", duration: 0.45, ease: "power2.in" }, END - 0.45);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

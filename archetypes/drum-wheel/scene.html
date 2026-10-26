@@ -1,0 +1,149 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"lead","type":"string","label":"Static word left of (or above) the wheel; empty = brand name","default":""},
+  {"id":"items","type":"string","label":"Wheel items, | separated; the wheel lands on the last one","default":"answers every lead|books the showing|sends the application|collects the fee"},
+  {"id":"hold","type":"number","label":"Seconds the focus row holds between snaps","default":0.6,"min":0.3,"max":1.4,"step":0.05},
+  {"id":"fadeOut","type":"boolean","label":"Blur out at the end","default":true}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-display); }
+        #__ID__-drift { position: absolute; inset: 0; }
+        #__ID__-lead { position: absolute; white-space: nowrap; color: var(--ink); font-weight: var(--w-display); letter-spacing: var(--track-display); text-shadow: 0 .04em .5em rgba(0,0,0,.5); }
+        #__ID__-lead span { display: inline-block; will-change: transform, filter, opacity; }
+        #__ID__-tilt { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+        #__ID__-wheel { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+        .__ID__-row { position: absolute; left: 0; white-space: nowrap; font-weight: var(--w-display); letter-spacing: var(--track-display); transform-origin: 0 50%; will-change: transform, opacity, filter;
+          text-shadow: 0 .04em .5em rgba(0,0,0,.5); backface-visibility: hidden; }
+        #__ID__-dot { position: absolute; border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--paper), var(--glow-6) 55%, var(--glow-5));
+          box-shadow: 0 .1em .25em rgba(0,0,0,.45), 0 0 .5em color-mix(in srgb, var(--glow-6) 55%, transparent); }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <div id="__ID__-drift">
+          <div id="__ID__-lead"></div>
+          <div id="__ID__-tilt"><div id="__ID__-wheel"></div></div>
+          <div id="__ID__-dot"></div>
+        </div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe, fid = B.format.id;
+          const v = window.__hyperframes.getVariables();
+          const land = W > H;
+          const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+          const ux0 = safe.left, ux1 = W - safe.right, uy0 = safe.top, uy1 = H - safe.bottom, uw = ux1 - ux0, cx = (ux0 + ux1) / 2;
+          const items = String(v.items).split("|").map(s => s.trim()).filter(Boolean);
+          const n = items.length, N = n * Math.ceil(12 / n);
+          const leadTxt = String(v.lead || "").trim() || B.name;
+          const HOLD = +v.hold;
+
+          /* fit the type: measure at 100 px */
+          const lead = document.getElementById(ID + "-lead"), wheel = document.getElementById(ID + "-wheel"), tilt = document.getElementById(ID + "-tilt"), dot = document.getElementById(ID + "-dot");
+          const probe = document.createElement("div");
+          probe.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap;font-size:100px;font-weight:var(--w-display);letter-spacing:var(--track-display)";
+          lead.parentNode.appendChild(probe);
+          const meas = t => { probe.textContent = t; return probe.offsetWidth; };
+          const leadW100 = meas(leadTxt), maxW100 = Math.max.apply(null, items.map(meas));
+          probe.remove();
+          const dotGap = 0.62, leadGap = 0.3; /* em */
+          let fs, leadFs, wx, wy, leadX, leadY;
+          if (land) {
+            fs = Math.min(104, 100 * uw / (leadW100 + maxW100 + 100 * (dotGap + leadGap + 0.1)));
+            leadFs = fs;
+            const total = leadW100 * fs / 100 + fs * leadGap + fs * dotGap + maxW100 * fs / 100;
+            leadX = Math.round(cx - total / 2);
+            wx = Math.round(leadX + leadW100 * fs / 100 + fs * leadGap + fs * dotGap);
+            wy = Math.round((uy0 + uy1) / 2);
+          } else {
+            fs = Math.min(84, 100 * (uw - 4) / (maxW100 + 100 * dotGap));
+            leadFs = Math.min(fs * 1.7, 100 * uw / leadW100);
+            wx = Math.round(ux0 + fs * dotGap);
+            leadX = ux0;
+            const leadH = leadFs * 1.15 + 24;
+            leadY = uy0 + 8;
+            wy = Math.round((uy0 + leadH + uy1) / 2);
+          }
+          const pitch = Math.round(fs * 1.2);
+          lead.style.left = leadX + "px"; lead.style.fontSize = leadFs + "px";
+          lead.style.lineHeight = land ? pitch + "px" : "1.15";
+          lead.style.top = land ? Math.round(wy - pitch / 2) + "px" : leadY + "px";
+          lead.innerHTML = leadTxt.split(" ").map(w => "<span>" + w + "</span>").join(" ");
+          tilt.style.left = wx + "px"; tilt.style.top = wy + "px";
+          tilt.style.transform = "rotate(" + (land ? -5 : -2.5) + "deg)";
+          wheel.style.perspective = "1500px"; wheel.style.perspectiveOrigin = "0 0";
+          const dotS = Math.round(fs * 0.24);
+          dot.style.cssText += ";width:" + dotS + "px;height:" + dotS + "px;left:" + Math.round(wx - fs * dotGap + (fs * dotGap - dotS) / 2 - fs * 0.06) + "px;top:" + Math.round(wy - dotS / 2) + "px";
+
+          /* drum geometry */
+          const STEP = 18, rad = STEP * Math.PI / 360, R = pitch / (2 * Math.sin(rad));
+          const rows = [];
+          for (let i = 0; i < N; i++) {
+            const el = document.createElement("div");
+            el.className = ID + "-row"; el.textContent = items[i % n];
+            el.style.cssText += ";font-size:" + fs + "px;height:" + pitch + "px;line-height:" + pitch + "px;top:" + (-pitch / 2) + "px";
+            wheel.appendChild(el); rows.push(el);
+          }
+          const wrap = d => ((d + N / 2) % N + N) % N - N / 2;
+          const render = (pos, vel, master) => {
+            for (let i = 0; i < N; i++) {
+              const d = wrap(i - pos), ad = Math.abs(d), el = rows[i];
+              if (ad > 5) { el.style.visibility = "hidden"; continue; }
+              const a = d * STEP * Math.PI / 180;
+              const y = R * Math.sin(a), z = R * Math.cos(a) - R;
+              const spin = clamp((Math.abs(vel) - 5) / 6, 0, 1), calm = 1 - 0.72 * spin * spin * (3 - 2 * spin); /* rows dim while the wheel spins fast: no flicker */
+              const op = (0.08 + 0.92 * Math.exp(-1.25 * ad)) * clamp(Math.cos(a) * 1.3, 0, 1) * master * calm;
+              const sc = 1 - 0.035 * ad, sk = d * 0.7;
+              const near = clamp(1 - ad, 0, 1);
+              el.style.visibility = "visible";
+              el.style.opacity = op.toFixed(3);
+              el.style.color = "color-mix(in srgb, var(--ink) " + Math.round(near * 100) + "%, var(--muted))";
+              el.style.transform = "translate3d(0," + y.toFixed(2) + "px," + z.toFixed(2) + "px) rotateX(" + (-d * STEP).toFixed(2) + "deg) scale(" + sc.toFixed(4) + ") skewX(" + sk.toFixed(2) + "deg)";
+              const bl = Math.min(7, Math.abs(vel) * 0.28);
+              el.style.filter = bl > 0.4 ? "blur(" + bl.toFixed(2) + "px)" : "none";
+            }
+            const f = Math.abs(pos - Math.round(pos)) * 2, sm = f * f * (3 - 2 * f);
+            dot.style.transform = "scale(" + (1 - 0.8 * sm).toFixed(3) + ")";
+            dot.style.opacity = master.toFixed(3);
+          };
+
+          /* position schedule: intro roll, snaps with shrinking holds, accelerando spin that lands on the last item */
+          const segs = [];
+          const add = (t0, dur, a, b, e) => segs.push({ t0, dur, a, b, e: gsap.parseEase(e) });
+          add(0.05, 1.0, -3, 0, "expo.out");
+          let t = 1.5, p = 0;
+          for (let k = 1; k <= n - 2; k++) {
+            add(t, 0.3, p, p + 1, "expo.out"); p += 1;
+            t += 0.3 + HOLD * (1 - 0.12 * k);
+          }
+          const from = p, to = (n - 1) + N;
+          add(t, 0.95, from, to - 1.2, "power2.in");
+          add(t + 0.95, 0.35, to - 1.2, to, "expo.out");
+          const landT = t + 1.3, END = landT + 1.1;
+          const posAt = tt => {
+            if (tt <= segs[0].t0) return segs[0].a;
+            for (let j = 0; j < segs.length; j++) {
+              const s = segs[j];
+              if (tt < s.t0) return segs[j - 1].b;
+              if (tt < s.t0 + s.dur) return s.a + (s.b - s.a) * s.e((tt - s.t0) / s.dur);
+            }
+            return segs[segs.length - 1].b;
+          };
+          const drv = { t: 0 };
+          const draw = () => render(posAt(drv.t), (posAt(drv.t + 0.008) - posAt(drv.t - 0.008)) / 0.016, clamp(drv.t / 0.45, 0, 1));
+          draw();
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo(drv, { t: 0 }, { t: END + 0.6, duration: END + 0.6, ease: "none", onUpdate: draw }, 0);
+          tl.fromTo("#" + ID + "-lead span", { opacity: 0, filter: "blur(14px)", y: 8 }, { opacity: 1, filter: "blur(0px)", y: 0, duration: 0.55, stagger: 0.1, ease: "power3.out" }, 0.1);
+          tl.fromTo("#" + ID + "-drift", { scale: 1, y: 0 }, { scale: 1.04, y: -10, duration: END + 0.6, ease: "sine.out" }, 0);
+          if (v.fadeOut) tl.fromTo("#" + ID + "-drift", { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(10px)", duration: 0.5, ease: "power2.in" }, END);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

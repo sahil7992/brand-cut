@@ -1,0 +1,245 @@
+{
+ "alt_msg_pop_1": {
+  "file": "sfx/alt_msg_pop_1.wav",
+  "onset": 0.0,
+  "peak": 0.0,
+  "dur": 0.4,
+  "kind": "message pop",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "alt_msg_pop_2": {
+  "file": "sfx/alt_msg_pop_2.wav",
+  "onset": 0.0,
+  "peak": 0.0,
+  "dur": 0.4,
+  "kind": "message pop",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "alt_msg_pop_soft": {
+  "file": "sfx/alt_msg_pop_soft.wav",
+  "onset": 0.02,
+  "peak": 0.03,
+  "dur": 0.111,
+  "kind": "message pop",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "alt_msg_pop_soft_2": {
+  "file": "sfx/alt_msg_pop_soft_2.wav",
+  "onset": 0.0,
+  "peak": 0.01,
+  "dur": 0.308,
+  "kind": "message pop",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "alt_msg_whoosh_out": {
+  "file": "sfx/alt_msg_whoosh_out.wav",
+  "onset": 0.0,
+  "peak": 0.06,
+  "dur": 0.286,
+  "kind": "send/whoosh",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "alt_phone_buzz_1": {
+  "file": "sfx/alt_phone_buzz_1.wav",
+  "onset": 0.0,
+  "peak": 0.88,
+  "dur": 1.119,
+  "kind": "message pop",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "alt_phone_buzz_2": {
+  "file": "sfx/alt_phone_buzz_2.wav",
+  "onset": 0.0,
+  "peak": 0.0,
+  "dur": 0.715,
+  "kind": "message pop",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "alt_whoosh_pull": {
+  "file": "sfx/alt_whoosh_pull.wav",
+  "onset": 0.18,
+  "peak": 0.6,
+  "dur": 0.754,
+  "kind": "send/whoosh",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "calendar_snap": {
+  "file": "sfx/calendar_snap.wav",
+  "onset": 0.01,
+  "peak": 0.02,
+  "dur": 0.437,
+  "kind": "calendar snap",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "card_set_down": {
+  "file": "sfx/card_set_down.wav",
+  "onset": 0.0,
+  "peak": 0.0,
+  "dur": 0.6,
+  "kind": "calendar snap",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "keys_clink": {
+  "file": "sfx/keys_clink.wav",
+  "onset": 0.09,
+  "peak": 0.26,
+  "dur": 0.42,
+  "kind": "toggle",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "keys_jingle": {
+  "file": "sfx/keys_jingle.wav",
+  "onset": 0.09,
+  "peak": 0.26,
+  "dur": 1.2,
+  "kind": "toggle",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "logo_hit": {
+  "file": "sfx/logo_hit.wav",
+  "onset": 0.0,
+  "peak": 0.01,
+  "dur": 2.48,
+  "kind": "logo hit",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "msg_pop_a": {
+  "file": "sfx/msg_pop_a.wav",
+  "onset": 0.0,
+  "peak": 0.06,
+  "dur": 0.4,
+  "kind": "message pop",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "msg_pop_b": {
+  "file": "sfx/msg_pop_b.wav",
+  "onset": 0.0,
+  "peak": 0.0,
+  "dur": 0.4,
+  "kind": "message pop",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "msg_pop_soft_a": {
+  "file": "sfx/msg_pop_soft_a.wav",
+  "onset": 0.06,
+  "peak": 0.07,
+  "dur": 0.4,
+  "kind": "message pop",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "msg_pop_soft_b": {
+  "file": "sfx/msg_pop_soft_b.wav",
+  "onset": 0.0,
+  "peak": 0.0,
+  "dur": 0.4,
+  "kind": "message pop",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "msg_whoosh": {
+  "file": "sfx/msg_whoosh.wav",
+  "onset": 0.0,
+  "peak": 0.01,
+  "dur": 0.48,
+  "kind": "send/whoosh",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "paper_slide": {
+  "file": "sfx/paper_slide.wav",
+  "onset": 0.0,
+  "peak": 0.44,
+  "dur": 0.8,
+  "kind": "paper slide",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "payment_chime": {
+  "file": "sfx/payment_chime.wav",
+  "onset": 0.0,
+  "peak": 0.0,
+  "dur": 0.8,
+  "kind": "payment/ka-ching",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "pen_scribble": {
+  "file": "sfx/pen_scribble.wav",
+  "onset": 0.0,
+  "peak": 0.99,
+  "dur": 1.2,
+  "kind": "pen/sign",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "phone_buzz_a": {
+  "file": "sfx/phone_buzz_a.wav",
+  "onset": 0.0,
+  "peak": 0.29,
+  "dur": 1.2,
+  "kind": "message pop",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "phone_buzz_b": {
+  "file": "sfx/phone_buzz_b.wav",
+  "onset": 0.0,
+  "peak": 0.0,
+  "dur": 1.2,
+  "kind": "message pop",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "riser_2s": {
+  "file": "sfx/riser_2s.wav",
+  "onset": 0.27,
+  "peak": 1.72,
+  "dur": 1.787,
+  "kind": "riser",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "ui_tap": {
+  "file": "sfx/ui_tap.wav",
+  "onset": 0.0,
+  "peak": 0.02,
+  "dur": 0.2,
+  "kind": "tap/press",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "whoosh_pull_reverse": {
+  "file": "sfx/whoosh_pull_reverse.wav",
+  "onset": 0.15,
+  "peak": 0.53,
+  "dur": 0.651,
+  "kind": "send/whoosh",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ },
+ "whoosh_push": {
+  "file": "sfx/whoosh_push.wav",
+  "onset": 0.0,
+  "peak": 0.19,
+  "dur": 0.8,
+  "kind": "send/whoosh",
+  "source": "ElevenLabs sound-effects",
+  "licence": "ElevenLabs Starter commercial terms"
+ }
+}

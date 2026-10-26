@@ -1,0 +1,57 @@
+{
+  "$schema": "../../brand.schema.json",
+  "id": "cswitch",
+  "name": "cswitch",
+  "pronunciation": "see-switch",
+  "tagline": "Rotate Claude Code between your accounts automatically.",
+  "endline": "You never see the wall.",
+  "url": "github.com/sahil7992/cswitch",
+  "category": "Open-source macOS CLI that rotates Claude Code between saved accounts when one nears its quota",
+  "palettes": {
+    "default": "term",
+    "term": {
+      "bg": "#0B0D0C", "bg2": "#131715", "ink": "#E9EEEA", "inkSoft": "#C3CBC6", "muted": "#7C8782", "hair": "#262D29",
+      "accent": "#5BE38A", "accentLift": "#8FF0AF", "accentDeep": "#0F3D22",
+      "paper": "#E9EEEA", "onPaper": "#0B0D0C", "brand": "#5BE38A", "brandLit": "#8FF0AF", "brandDeep": "#0F3D22",
+      "ok": "#5BE38A", "warn": "#F2B84E", "info": "#8FF0AF",
+      "glowRamp": ["#000000","#050B07","#0A1E10","#0F3D22","#177A40","#2FB866","#5BE38A","#B5F5CB","#E9EEEA"],
+      "glowCard": "#E9EEEA"
+    }
+  },
+  "app": {
+    "note": "Terminal tokens.",
+    "ground": "#0B0D0C", "rail": "#101312", "raised": "#131715", "raised2": "#1A1F1C", "hair": "#262D29",
+    "text": "#E9EEEA", "textSoft": "#C3CBC6", "muted": "#7C8782", "faint": "#5A645F",
+    "accent": "#5BE38A", "accentLift": "#8FF0AF", "amber": "#F2B84E", "green": "#5BE38A", "info": "#8FF0AF", "olive": "#B7C95A",
+    "solid": "#E9EEEA", "onSolid": "#0B0D0C", "brandLit": "#8FF0AF", "brandDeep": "#0F3D22",
+    "radii": {"sm": 8, "md": 12, "lg": 16, "xl": 22},
+    "trackingDisplay": "-0.03em", "trackingUi": "0em", "dim": "#4A534F", "hairSoft": "#1B211E"
+  },
+  "fonts": {
+    "display": {"family": "Geist", "files": {"500": "assets/fonts/Geist-500.woff2", "600": "assets/fonts/Geist-600.woff2", "700": "assets/fonts/Geist-700.woff2"}, "weight": 600, "tracking": "-0.03em"},
+    "ui": {"family": "Geist Mono", "files": {"500": "assets/fonts/GeistMono-Medium.ttf", "600": "assets/fonts/GeistMono-Semibold.ttf"}, "weight": 500, "tracking": "0em"}
+  },
+  "logo": {
+    "tile": "", "mark": "", "wordmarkText": "cswitch", "askRibbon": "",
+    "markColors": {"tile": "#0B0D0C", "ink": "#E9EEEA", "reply": "#5BE38A"},
+    "markAnim": "none",
+    "wordmark": {"font": "ui", "family": "Geist Mono", "weight": 600, "tracking": "-0.02em", "onDark": "#E9EEEA", "onLight": "#0B0D0C"}
+  },
+  "partners": {}, "ui": {}, "phone": {}, "faces": {}, "photos": {"dir": "", "hero": ""}, "footage": {}, "cast": {},
+  "story": {
+    "beats": [
+      "Claude Code stops at the usage limit.",
+      "cswitch ls shows every saved account and its 5h and 7d usage.",
+      "cswitch auto rotates to the account with the most room.",
+      "The session carries on, no restart."
+    ]
+  },
+  "truths": {
+    "may_claim": ["macOS only", "no runtime dependencies", "rotates at a threshold (default 90%) before the wall", "swap needs no restart", "MIT license"],
+    "never_claim": ["rescues a response already in progress", "works on Linux"],
+    "reply_rules": "Facts from the README only."
+  },
+  "voice": {"default_voice_id": "", "alternates": [], "model": "", "speed": 1, "stability": 0.5, "similarity": 0.5, "style": 0, "notes": "Silent films."},
+  "copy": {"banned_words": ["revolutionize", "seamless", "unleash"], "case": "sentence", "no_emoji": true, "no_all_caps": true, "banned_fonts": ["Instrument Serif Italic"]},
+  "design": {"look": "Near-black terminal, one green accent, Geist Mono + Geist.", "never": ["ALL CAPS", "emojis", "purple gradients"]}
+}

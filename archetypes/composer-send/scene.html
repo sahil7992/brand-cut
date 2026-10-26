@@ -1,0 +1,185 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"text","type":"string","label":"The lead first message (empty = first lead message of BRAND.story.sampleThread)","default":""},
+  {"id":"photo","type":"string","label":"Listing photo plate path","default":"assets/photos/home-2.jpg"},
+  {"id":"channel","type":"enum","label":"Composer look","default":"sms","options":[{"value":"sms","label":"SMS"},{"value":"whatsapp","label":"WhatsApp"}]},
+  {"id":"seed","type":"number","label":"Seed for the irregular typing gaps","default":5,"min":1,"max":999,"step":1},
+  {"id":"cps","type":"number","label":"Average characters per second","default":20,"min":9,"max":26,"step":1},
+  {"id":"fadeOut","type":"boolean","label":"Blur out at the end","default":false}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-ui); background: #000; }
+        #__ID__-cam, #__ID__-drift { position: absolute; inset: 0; }
+        #__ID__-photo { position: absolute; inset: -3%; background-size: cover; background-position: 50% 55%; }
+        #__ID__-shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,0) 35%, rgba(0,0,0,.42)); }
+        #__ID__-space { position: absolute; transform-origin: 0 0; width: 390px; height: 560px; }
+        #__ID__-bar { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 12px 12px; display: flex; align-items: flex-end; gap: 10px; color: #fff; }
+        .__ID__-plus { flex: none; width: 38px; height: 38px; margin-bottom: 3px; border-radius: 50%; background: rgba(40,40,44,.55); backdrop-filter: blur(22px) saturate(1.5); -webkit-backdrop-filter: blur(22px) saturate(1.5);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 8px 22px rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; }
+        .__ID__-pill { position: relative; flex: 1; min-height: 44px; border-radius: 22px; background: rgba(34,34,38,.55); backdrop-filter: blur(22px) saturate(1.5); -webkit-backdrop-filter: blur(22px) saturate(1.5);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.26), inset 0 0 0 1px rgba(255,255,255,.08), 0 14px 34px rgba(0,0,0,.38); }
+        .__ID__-pill.sms { padding: 10px 50px 10px 16px; }
+        .__ID__-pill.whatsapp { padding: 10px 16px; border-radius: 24px; }
+        #__ID__-txt { position: relative; font-size: 17px; line-height: 24px; letter-spacing: var(--track-ui); color: rgba(255,255,255,.96); min-height: 24px; }
+        #__ID__-txt .w { display: inline-block; white-space: nowrap; }
+        #__ID__-txt .c { visibility: hidden; }
+        #__ID__-ph { position: absolute; left: 16px; top: 10px; font-size: 17px; line-height: 24px; color: rgba(255,255,255,.5); letter-spacing: var(--track-ui); }
+        #__ID__-caret { position: absolute; width: 2px; height: 21px; margin-top: 1.5px; border-radius: 1px; background: var(--accent); opacity: 0; }
+        #__ID__-send { position: absolute; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; opacity: 0;
+          box-shadow: inset 0 1.5px 0 rgba(255,255,255,.4), inset 0 -2px 3px rgba(0,0,0,.18), 0 5px 12px rgba(0,0,0,.35); }
+        #__ID__-send.sms { right: 6px; bottom: 6px; background: #34c759; }
+        #__ID__-send.whatsapp { right: -50px; bottom: -1px; width: 44px; height: 44px; background: #25d366; }
+        #__ID__-bubble { position: absolute; right: 12px; bottom: 12px; max-width: 250px; padding: 9px 14px 10px; border-radius: 19px 19px 5px 19px; font-size: 17px; line-height: 24px; letter-spacing: var(--track-ui); color: #fff; opacity: 0;
+          box-shadow: inset 0 1.5px 0 rgba(255,255,255,.3), inset 0 -3px 5px rgba(0,0,0,.14), 0 14px 30px rgba(0,0,0,.4); transform-origin: 100% 100%; }
+        #__ID__-bubble.sms { background: #34c759; }
+        #__ID__-bubble.whatsapp { background: #005c4b; border-radius: 16px 16px 4px 16px; }
+        #__ID__-touch { position: absolute; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%; opacity: 0; pointer-events: none;
+          background: radial-gradient(circle at 38% 32%, rgba(255,255,255,.55), rgba(255,255,255,.28)); border: 1.5px solid rgba(255,255,255,.55); box-shadow: 0 10px 22px rgba(0,0,0,.4); }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <div id="__ID__-cam"><div id="__ID__-drift">
+          <div id="__ID__-photo"></div>
+          <div id="__ID__-shade"></div>
+          <div id="__ID__-space" data-layout-allow-overlap data-layout-allow-overflow>
+            <div id="__ID__-bubble"></div>
+            <div id="__ID__-bar">
+              <div class="__ID__-plus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+              <div class="__ID__-pill" id="__ID__-pill"><div id="__ID__-ph"></div><div id="__ID__-txt"></div><div id="__ID__-send"></div></div>
+            </div>
+            <div id="__ID__-touch"></div>
+          </div>
+        </div></div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe;
+          const v = window.__hyperframes.getVariables();
+          const $ = (s) => document.getElementById(ID + "-" + s);
+          const ch = v.channel === "whatsapp" ? "whatsapp" : "sms";
+          const first = B.story.sampleThread.find((m) => m.from !== "assistant");
+          const text = String(v.text || "").trim() || first.text;
+          const availW = W - safe.left - safe.right;
+
+          /* ---- layout: the message bar is bottom-anchored so the send button never moves while the bar grows upward ---- */
+          const Zc = Math.min(availW / (ch === "whatsapp" ? 400 : 390), HF.land ? 2.45 : 3);
+          const bottomY = H - safe.bottom - (HF.land ? 36 : 50);
+          const space = $("space");
+          Object.assign(space.style, { left: Math.round(safe.left + (availW - 390 * Zc) / 2) + "px", top: Math.round(bottomY - 560 * Zc) + "px", transform: "scale(" + Zc + ")" });
+          $("photo").style.backgroundImage = "url('" + String(v.photo) + "')";
+          const pill = $("pill"), txt = $("txt"), send = $("send"), bubble = $("bubble");
+          pill.classList.add(ch); send.classList.add(ch); bubble.classList.add(ch);
+          if (ch === "whatsapp") { $("bar").style.paddingRight = "62px"; }
+          send.innerHTML = ch === "sms"
+            ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 11.5l6-6 6 6"/></svg>'
+            : '<svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M3 20.5v-6.6l9-1.9-9-1.9V3.5L22 12z"/></svg>';
+          $("ph").textContent = ch === "sms" ? "Text Message" : "Message";
+          if (ch === "whatsapp") { $("ph").style.left = "16px"; }
+          bubble.textContent = text;
+
+          /* ---- chars: one span per character, words kept whole so wrapping happens at spaces ---- */
+          const words = text.split(" ");
+          const chars = [];
+          words.forEach((w, wi) => {
+            const ws = document.createElement("span"); ws.className = "w";
+            Array.from(w).forEach((c) => { const s = document.createElement("span"); s.className = "c"; s.textContent = c; ws.appendChild(s); chars.push({ el: s, wi }); });
+            txt.appendChild(ws);
+            if (wi < words.length - 1) { const sp = document.createElement("span"); sp.className = "c"; sp.textContent = " "; txt.appendChild(sp); chars.push({ el: sp, wi, space: true }); }
+          });
+          const cr = document.createElement("i"); cr.id = ID + "-caret"; txt.appendChild(cr);
+
+          /* seeded irregular gaps, with a beat after punctuation */
+          const rnd = HF.rng(Math.round(+v.seed));
+          const mean = 1 / Math.max(6, +v.cps);
+          const T0 = 0.75;
+          let tt = T0;
+          chars.forEach((c, i) => {
+            c.t = tt;
+            const ch0 = c.el.textContent;
+            tt += mean * (0.45 + rnd() * 1.1) + (/[!?.,]/.test(ch0) ? 0.1 + rnd() * 0.08 : 0);
+          });
+          const T1 = tt;                       /* last character typed */
+          const TZ0 = T1 + 0.5;                /* match-cut zoom onto the send button */
+          const TPRESS = TZ0 + 0.3;
+          const TSEND = TZ0 + 0.55;            /* cut back to wide, text clears, bubble flies */
+          const FLY = 0.75;
+          const END = TSEND + FLY + 0.9;
+          const accentHex = B.palette.accent, ink = B.app.text;
+          const LH = 24, BASE = 44;
+          const ease = gsap.parseEase("elastic.out(1,0.5)"), out3 = gsap.parseEase("power3.out");
+          const clamp01 = (x) => Math.max(0, Math.min(1, x));
+          const m = { t: 0 };
+          const apply = () => {
+            const t = m.t;
+            const sent = t >= TSEND;
+            let last = -1, lineStarts = [], lastTop = -1;
+            chars.forEach((c, i) => {
+              const typed = !sent && t >= c.t;
+              c.el.style.visibility = typed ? "visible" : "hidden";
+              if (typed) {
+                last = i;
+                const age = t - c.t;
+                c.el.style.color = age < 0.32 ? gsap.utils.interpolate(accentHex, ink, clamp01(age / 0.3)) : "";
+              }
+              const top = c.el.offsetTop;
+              if (top !== lastTop) { lineStarts.push(i); lastTop = top; }
+            });
+            /* caret: solid while typing, blinks at 2 Hz when idle */
+            const typingNow = t < T1 + 0.05;
+            const idleBlink = Math.floor(t * 4) % 2 === 0;
+            const show = !sent && ((t >= T0 - 0.3) && (typingNow || idleBlink));
+            const lc = last >= 0 ? chars[last].el : null;
+            cr.style.opacity = show ? 1 : 0;
+            cr.style.left = (lc ? lc.offsetLeft + lc.offsetWidth + 1 : 0) + "px";
+            cr.style.top = (lc ? lc.offsetTop : 0) + "px";
+            $("ph").style.opacity = sent || last < 0 ? 1 : 0;
+            /* the bar grows by one line (elastic) when a new line starts, and springs back on send */
+            let extra = 0;
+            for (let k = 1; k < lineStarts.length; k++) extra += ease(clamp01((t - chars[lineStarts[k]].t) / 0.55));
+            if (sent) extra *= 1 - out3(clamp01((t - TSEND) / 0.4));
+            pill.style.height = BASE + 0 + Math.max(0, extra) * LH + "px";
+          };
+
+          const tl = gsap.timeline({ paused: true });
+          const photo = $("photo");
+          tl.fromTo(photo, { scale: 1.0 }, { scale: 1.1, duration: END, ease: "none" }, 0);
+          tl.fromTo($("bar"), { y: 120, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "expo.out" }, 0.1);
+          /* send button appears with the first character (real behaviour) */
+          tl.fromTo(send, { scale: 0.4, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(1.7)" }, T0);
+          /* touch indicator glides to the send button: fast travel, long decel */
+          const sx = ch === "sms" ? 390 - 12 - 6 - 16 : 390 - 12 + 1 - 22 + 0;
+          const sy = 560 - 12 - 6 - 16 + (ch === "sms" ? 0 : -4);
+          const touch = $("touch");
+          gsap.set(touch, { left: sx + 120, top: sy + 150 });
+          tl.fromTo(touch, { x: 0, y: 0, opacity: 0, scale: 1 }, { x: -120, y: -150, opacity: 1, duration: 0.55, ease: "power4.out" }, TZ0 - 0.55);
+          /* single-frame 2x match-cut zoom onto the send button, then a single-frame cut back */
+          const camOrigin = (parseFloat(space.style.left) + sx * Zc) + "px " + (parseFloat(space.style.top) + sy * Zc) + "px";
+          const cam = $("cam");
+          gsap.set(cam, { transformOrigin: camOrigin });
+          tl.set(cam, { scale: 2 }, TZ0);
+          tl.set(cam, { scale: 1 }, TSEND);
+          tl.to(touch, { scale: 0.82, duration: 0.09, ease: "power2.out" }, TPRESS);
+          tl.to(send, { scale: 0.9, duration: 0.09, ease: "power2.out" }, TPRESS);
+          tl.to(send, { scale: 1, duration: 0.2, ease: "power2.out" }, TPRESS + 0.1);
+          tl.to(touch, { scale: 1, opacity: 0, duration: 0.22, ease: "power2.in" }, TPRESS + 0.12);
+          tl.to(send, { opacity: 0, scale: 0.5, duration: 0.15, ease: "power2.in" }, TSEND);
+          /* the sent bubble: appears where the text was and flies up to its resting place */
+          const rise = HF.land ? 175 : 190;
+          tl.set(bubble, { opacity: 1 }, TSEND);
+          tl.fromTo(bubble, { y: 0, scale: 0.94 }, { y: -rise, scale: 1, duration: FLY, ease: "expo.out", immediateRender: false }, TSEND);
+          tl.fromTo(bubble, { filter: "blur(5px)" }, { filter: "blur(0px)", duration: 0.3, ease: "power2.out", immediateRender: false }, TSEND);
+          /* drive text/caret/height statelessly from the clock */
+          tl.fromTo(m, { t: 0 }, { t: END, duration: END, ease: "none", onUpdate: apply, immediateRender: false }, 0);
+          apply();
+          if (v.fadeOut) tl.fromTo("#" + ID + "-drift", { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(10px)", duration: 0.5, ease: "power2.in" }, END - 0.5);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

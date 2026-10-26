@@ -1,0 +1,173 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"icons","type":"string","label":"Tiles, | separated (sms, whatsapp, calendar, mark, docusign, stripe, or any brand partner key)","default":"sms|whatsapp|calendar|mark|docusign|stripe"},
+  {"id":"circle","type":"number","label":"Index (0-based) of the tile the pen circles","default":3,"min":0,"max":11,"step":1},
+  {"id":"note","type":"string","label":"Handwritten note under the circle (display face)","default":"Replies in seconds"},
+  {"id":"fadeOut","type":"boolean","label":"Blur out at the end","default":true}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-display); }
+        #__ID__-drift, #__ID__-ring { position: absolute; inset: 0; }
+        .__ID__-sh { position: absolute; left: 0; top: 0; border-radius: 50%; background: radial-gradient(closest-side, rgba(0,0,0,.62), rgba(0,0,0,0)); filter: blur(10px); will-change: transform, opacity; }
+        .__ID__-tile { position: absolute; left: 0; top: 0; border-radius: 22.5%; overflow: hidden; will-change: transform, opacity, filter;
+          box-shadow: 0 .6em 1.2em rgba(0,0,0,.35); }
+        .__ID__-tile .face { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+        .__ID__-tile .face img { width: 56%; height: 56%; }
+        .__ID__-tile.paper .face { background: linear-gradient(160deg, var(--paper), color-mix(in srgb, var(--paper) 82%, #8a8a8a)); }
+        .__ID__-tile.full .face img { width: 100%; height: 100%; }
+        .__ID__-tile.sms .face { background: linear-gradient(180deg, color-mix(in srgb, var(--ok) 75%, #fff), var(--ok) 55%, color-mix(in srgb, var(--ok) 70%, #000)); }
+        .__ID__-tile.sms svg { width: 58%; height: 58%; filter: drop-shadow(0 .03em .05em rgba(0,0,0,.3)); }
+        .__ID__-cal { width: 100%; height: 100%; display: flex; flex-direction: column; font-family: var(--font-ui); }
+        .__ID__-cal .hd { height: 34%; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, var(--accent-lift), var(--accent)); color: #fff; font-weight: 600; font-size: .15em; letter-spacing: var(--track-ui); }
+        .__ID__-cal .bd { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--on-paper); font-family: var(--font-display); font-weight: 600; font-size: .42em; letter-spacing: -.04em; }
+        .__ID__-gloss { position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+          background: linear-gradient(150deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,.12) 30%, rgba(255,255,255,0) 52%), linear-gradient(0deg, rgba(0,0,0,.2), rgba(0,0,0,0) 38%);
+          box-shadow: inset 0 .02em 0 rgba(255,255,255,.75), inset 0 -.03em .06em rgba(0,0,0,.25); }
+        .__ID__-edge { position: absolute; inset: 0; border-radius: inherit; padding: 2px; pointer-events: none;
+          background: linear-gradient(145deg, rgba(255,255,255,.9), rgba(255,255,255,.15) 40%, rgba(255,255,255,.1) 65%, rgba(255,255,255,.5));
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        .__ID__-fog { position: absolute; inset: 0; background: #000; pointer-events: none; }
+        .__ID__-rim { position: absolute; inset: 0; border-radius: inherit; opacity: 0; pointer-events: none; box-shadow: inset 0 0 0 3px var(--accent-lift), inset 0 0 .35em color-mix(in srgb, var(--accent-lift) 70%, transparent); }
+        #__ID__-pen { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+        #__ID__-note { position: absolute; text-align: center; white-space: nowrap; color: var(--ink); font-weight: var(--w-display); letter-spacing: var(--track-display); text-shadow: 0 .05em .5em rgba(0,0,0,.55); transform: rotate(-2.5deg); }
+        #__ID__-note span { display: inline-block; white-space: pre; }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <div id="__ID__-drift">
+          <div id="__ID__-ring"></div>
+          <svg id="__ID__-pen" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+            <path id="__ID__-penB" fill="none" stroke="var(--accent-lift)" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1 1.01" stroke-dashoffset="1" />
+            <path id="__ID__-penA" fill="none" stroke="var(--accent-lift)" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1 1.01" stroke-dashoffset="1" />
+          </svg>
+          <div id="__ID__-note"></div>
+        </div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe, fid = B.format.id;
+          const v = window.__hyperframes.getVariables();
+          const pick = o => (o[fid] !== undefined ? o[fid] : o.def);
+          const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+          const ux0 = safe.left, ux1 = W - safe.right, uy0 = safe.top, uy1 = H - safe.bottom, uw = ux1 - ux0, cx = (ux0 + ux1) / 2;
+          const known = k => ["mark", "sms", "calendar"].includes(k) || !!B.partners[k];
+          const keys = String(v.icons).split("|").map(s => s.trim()).filter(known), n = keys.length;
+          const C = clamp(Math.round(+v.circle), 0, n - 1);
+          const ts = pick({ "16x9": 270, "9x16": 220, "1x1": 205, "4x5": 215, def: 215 });
+          const FRONT = 1.25;
+          const ry = pick({ "16x9": 190, "9x16": 230, "1x1": 170, "4x5": 210, def: 190 });
+          const rx = Math.min(700, uw / 2 - ts * 0.6);
+          const noteFs = pick({ "16x9": 56, "9x16": 54, "1x1": 50, "4x5": 52, def: 52 });
+          const topExt = ry + ts * 0.35, botExt = ry + ts * FRONT * 0.76 * 1.12 + noteFs * 1.5;
+          const cy = Math.round((uy0 + uy1) / 2 - (botExt - topExt) / 2);
+          const frontY = cy + ry;
+
+          /* tiles: real brand marks only */
+          const SMS = '<svg viewBox="0 0 48 48"><path fill="#fff" d="M8 10h32a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H22l-9 7v-7H8a4 4 0 0 1-4-4V14a4 4 0 0 1 4-4z"/></svg>';
+          const build = k => {
+            if (k === "mark") return { cls: "full", html: '<img src="' + B.logo.tile + '" alt="">' };
+            if (k === "sms") return { cls: "sms", html: SMS };
+            if (k === "calendar") return { cls: "paper", html: '<div class="' + ID + '-cal"><div class="hd">Sat</div><div class="bd">11</div></div>' };
+            if (B.partners[k]) return { cls: "paper", html: '<img src="' + B.partners[k] + '" alt="">' };
+          };
+          const ring = document.getElementById(ID + "-ring");
+          const tiles = keys.map((k, i) => {
+            const b = build(k);
+            const sh = document.createElement("div"); sh.className = ID + "-sh"; sh.style.cssText += ";width:" + ts + "px;height:" + Math.round(ts * 0.2) + "px";
+            const el = document.createElement("div"); el.className = ID + "-tile " + b.cls; el.id = ID + "-t" + i;
+            el.style.cssText += ";width:" + ts + "px;height:" + ts + "px;font-size:" + ts + "px";
+            el.innerHTML = '<div class="face">' + b.html + '</div><div class="' + ID + '-gloss"></div><div class="' + ID + '-edge"></div><div class="' + ID + '-fog"></div><div class="' + ID + '-rim"></div>';
+            ring.appendChild(sh); ring.appendChild(el);
+            return { el, sh, fog: el.querySelector("." + ID + "-fog"), rim: el.querySelector("." + ID + "-rim") };
+          });
+
+          /* ring state: rotation (deg) from a spin that eases out so tile C ends on the front-centre */
+          const rotF = 90 - C * 360 / n, SPIN = 140, T_ROT0 = 0.1, T_ROT = 1.9;
+          const eRot = gsap.parseEase("power3.out");
+          const rotAt = t => rotF - SPIN * (1 - eRot(clamp((t - T_ROT0) / T_ROT, 0, 1)));
+          const eIn = gsap.parseEase("back.out(1.5)");
+          const st = { t: 0, pop: [], emph: 0 };
+          const render = () => {
+            const t = st.t, rot = rotAt(t), vel = (rotAt(t + 0.008) - rotAt(t - 0.008)) / 0.016;
+            tiles.forEach((o, i) => {
+              const th = (i * 360 / n + rot) * Math.PI / 180, s_ = Math.sin(th), c_ = Math.cos(th);
+              const depth = (1 + s_) / 2;
+              const emph = i === C ? 1 + 0.06 * st.emph : 1, dim = i === C ? 0 : 0.28 * st.emph;
+              const sc = (0.7 + (FRONT - 0.7) * depth) * emph;
+              const x = cx + rx * c_, y = cy + ry * s_;
+              const pop = clamp((t - (0.05 + i * 0.07)) / 0.5, 0, 1), pp = pop === 0 ? 0 : eIn(pop);
+              const S = sc * (0.55 + 0.45 * pp);
+              o.el.style.transform = "translate3d(" + (x - ts / 2).toFixed(2) + "px," + (y - ts / 2).toFixed(2) + "px,0) scale(" + S.toFixed(4) + ")";
+              o.el.style.opacity = (clamp(pop * 2, 0, 1) * (0.62 + 0.38 * depth) * (1 - dim * 0.6)).toFixed(3);
+              o.el.style.zIndex = String(100 + Math.round(s_ * 100));
+              o.fog.style.opacity = ((1 - depth) * 0.5 + dim).toFixed(3);
+              const bl = Math.min(6, Math.abs(vel) * Math.abs(c_) / 70);
+              o.el.style.filter = bl > 0.4 ? "blur(" + bl.toFixed(2) + "px)" : "none";
+              const shw = ts * sc * 0.95;
+              o.sh.style.transform = "translate3d(" + (x - ts / 2).toFixed(2) + "px," + (y + ts * sc * 0.47 - ts * 0.1).toFixed(2) + "px,0) scale(" + (shw / ts).toFixed(3) + "," + (sc).toFixed(3) + ")";
+              o.sh.style.opacity = (clamp(pop * 2, 0, 1) * (0.35 + 0.65 * depth)).toFixed(3);
+              o.sh.style.zIndex = "0";
+              o.rim.style.opacity = i === C ? st.emph.toFixed(3) : "0";
+            });
+          };
+
+          /* hand-drawn pen loop around tile C: two overlaid strokes, drawn on twos (12 fps) */
+          const R = HF.rng(11), S = ts * FRONT;
+          const pcx = cx, pcy = frontY, prx = S * 0.80, pry = S * 0.76;
+          const ph = [R() * 6.28, R() * 6.28, R() * 6.28];
+          const loop = (grow, jit, a0, turns) => {
+            const pts = [], N = 150;
+            for (let j = 0; j <= N; j++) {
+              const u = j / N, a = a0 + u * turns * 2 * Math.PI;
+              const r = 1 + grow * u + jit * (Math.sin(a * 2 + ph[0]) * 0.5 + Math.sin(a * 3.3 + ph[1]) * 0.35 + Math.sin(a * 5.1 + ph[2]) * 0.15);
+              pts.push((pcx + prx * r * Math.cos(a)).toFixed(1) + " " + (pcy + pry * r * Math.sin(a) + u * S * 0.015).toFixed(1));
+            }
+            return "M" + pts.join(" L");
+          };
+          document.getElementById(ID + "-pen").setAttribute("viewBox", "0 0 " + W + " " + H);
+          const penA = document.getElementById(ID + "-penA"), penB = document.getElementById(ID + "-penB");
+          const sw = Math.max(5, Math.round(S * 0.032));
+          penA.setAttribute("d", loop(0.07, 0.022, -2.2, 1.08)); penA.setAttribute("stroke-width", sw * 1.5);
+          penB.setAttribute("d", loop(0.04, 0.03, -2.15, 1.06)); penB.setAttribute("stroke-width", sw * 0.6);
+          penB.setAttribute("opacity", "0.9");
+          const TP = 2.05, DP = 0.85;
+          const pen = { t: 0 };
+          const ePen = gsap.parseEase("power2.out");
+          const drawPen = () => {
+            const q = Math.floor(pen.t * 12) / 12;           /* on twos */
+            const pa = ePen(clamp(q / DP, 0, 1)), pb = ePen(clamp((q - 0.08) / DP, 0, 1));
+            penA.setAttribute("stroke-dashoffset", (1 - pa).toFixed(4));
+            penB.setAttribute("stroke-dashoffset", (1 - pb).toFixed(4));
+            penA.style.opacity = pa > 0 ? 1 : 0; penB.style.opacity = pb > 0 ? 0.9 : 0;
+          };
+          penA.style.filter = penB.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,.5))";
+
+          /* note: irregular handwriting cadence */
+          const note = document.getElementById(ID + "-note");
+          note.style.fontSize = noteFs + "px"; note.style.left = ux0 + "px"; note.style.width = uw + "px";
+          note.style.top = Math.round(pcy + pry * 1.12 + noteFs * 0.35) + "px";
+          const RN = HF.rng(5); let acc = 0;
+          const chars = Array.from(String(v.note)), delays = chars.map(() => (acc += 0.025 + RN() * 0.06));
+          note.innerHTML = chars.map(c => "<span>" + c + "</span>").join("");
+
+          const tl = gsap.timeline({ paused: true });
+          const END = TP + DP + 1.8;
+          st.t = 0; render(); drawPen();
+          tl.fromTo(st, { t: 0 }, { t: END + 0.6, duration: END + 0.6, ease: "none", onUpdate: render }, 0);
+          tl.fromTo(pen, { t: 0 }, { t: DP + 0.2, duration: DP + 0.2, ease: "none", onUpdate: drawPen, immediateRender: false }, TP);
+          tl.fromTo(st, { emph: 0 }, { emph: 1, duration: 0.4, ease: "back.out(1.6)", onUpdate: render, immediateRender: false }, TP + DP - 0.05);
+          const spans = note.querySelectorAll("span");
+          spans.forEach((s, i) => tl.fromTo(s, { opacity: 0, y: 6, filter: "blur(4px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.12, ease: "power2.out" }, TP + DP - 0.1 + delays[i]));
+          tl.fromTo("#" + ID + "-drift", { scale: 1, y: 0 }, { scale: 1.035, y: -8, duration: END + 0.6, ease: "sine.out" }, 0);
+          if (v.fadeOut) tl.fromTo("#" + ID + "-drift", { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(10px)", duration: 0.5, ease: "power2.in" }, END);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

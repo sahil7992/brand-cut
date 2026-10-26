@@ -1,0 +1,154 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"cards","type":"string","label":"Card kinds, | separated (thread, home, listing, calendar, application, pay, receipt, approval, stats)","default":"thread|home|listing|calendar|application|pay|receipt|approval|stats"},
+  {"id":"steps","type":"number","label":"How many times the ring advances","default":4,"min":1,"max":8,"step":1},
+  {"id":"step","type":"number","label":"Seconds per ring step","default":1.0,"min":0.6,"max":1.6,"step":0.05},
+  {"id":"fadeOut","type":"boolean","label":"Ring rises out through the top at the end","default":true}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-ui); }
+        #__ID__-drift, #__ID__-fly, #__ID__-persp { position: absolute; inset: 0; }
+        #__ID__-ring { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+        .__ID__-card { position: absolute; transform-style: preserve-3d; backface-visibility: hidden; }
+        .__ID__-face { position: absolute; inset: 0; border-radius: 40px; overflow: hidden; background: var(--app-ground);
+          box-shadow: 0 2px 0 rgba(255,255,255,.08) inset, 0 40px 90px rgba(0,0,0,.55), 0 10px 26px rgba(0,0,0,.45); }
+        .__ID__-body { position: absolute; left: 0; top: 0; transform-origin: 0 0; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+        .__ID__-edge { position: absolute; inset: 0; border-radius: 40px; padding: 2.5px; pointer-events: none; z-index: 5;
+          background: linear-gradient(150deg, rgba(255,255,255,.75), rgba(255,255,255,.14) 30%, rgba(255,255,255,.08) 70%, rgba(255,255,255,.34));
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        .__ID__-sheen { position: absolute; inset: 0; pointer-events: none; z-index: 4; border-radius: 40px;
+          background: linear-gradient(135deg, rgba(255,255,255,.13) 0%, rgba(255,255,255,.04) 24%, rgba(255,255,255,0) 46%); }
+        .__ID__-fog { position: absolute; inset: -2px; background: #000; opacity: 0; z-index: 6; pointer-events: none; border-radius: 42px; }
+        #__ID__-shadow { position: absolute; border-radius: 50%; background: radial-gradient(closest-side, rgba(0,0,0,.6), rgba(0,0,0,0)); filter: blur(10px); }
+        .__ID__-cap { width: 100%; height: 100%; object-fit: cover; object-position: 50% 0; display: block; }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <div id="__ID__-drift"><div id="__ID__-fly"><div id="__ID__-shadow"></div><div id="__ID__-persp"><div id="__ID__-ring"></div></div></div></div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe, RU = HF.realui;
+          const v = window.__hyperframes.getVariables();
+          const kinds = String(v.cards).split("|").map(s => s.trim()).filter(Boolean);
+          const N = kinds.length, STEPS = Math.min(+v.steps, N - 1), STEP = +v.step;
+          const cx = (safe.left + (W - safe.right)) / 2, cy = (safe.top + (H - safe.bottom)) / 2;
+
+          /* card + ring geometry per format (design px) */
+          const G = HF.pick({
+            "16x9": { cw: 520, ch: 720, p: 3000, k: 0.98 },
+            "9x16": { cw: 650, ch: 960, p: 3400, k: 0.98 },
+            "1x1":  { cw: 520, ch: 720, p: 2800, k: 0.98 },
+            "4x5":  { cw: 520, ch: 760, p: 3000, k: 0.98 },
+            def:    { cw: 520, ch: 720, p: 3000, k: 0.98 }
+          });
+          const stepDeg = Math.min(34, 360 / N);
+          const R = (G.k * G.cw) / (2 * Math.sin((stepDeg / 2) * Math.PI / 180));
+          const persp = document.getElementById(ID + "-persp"), ring = document.getElementById(ID + "-ring"), fly = document.getElementById(ID + "-fly");
+          persp.style.perspective = G.p + "px"; persp.style.perspectiveOrigin = cx + "px " + cy + "px";
+          ring.style.left = cx + "px"; ring.style.top = cy + "px";
+          const sh = document.getElementById(ID + "-shadow");
+          Object.assign(sh.style, { left: (cx - G.cw * 0.62) + "px", width: G.cw * 1.24 + "px", top: (cy + G.ch / 2 + 6) + "px", height: "70px" });
+
+          /* ---- real content, from BRAND ---- */
+          const lead = B.cast.leads[0], L = B.cast.listing, fee = B.story.sampleFee;
+          const first = n => n.split(" ")[0];
+          const msgs = B.story.sampleThread.map(m => m.from === "lead" ? { from: "in", text: m.text, meta: "11:37 AM" } : { from: "out", text: m.text, meta: B.name + " · 9s" });
+          const LD = B.cast.leads, lead4 = LD[3] || LD[LD.length - 1], payerFace = (B.faces[first(fee.payer).toLowerCase()] ? first(fee.payer).toLowerCase() : LD[0].face), photo = B.photos.hero || (B.photos.dir + "/home-1.jpg");
+          const feeNum = String(fee.amount).replace("$", "");
+          const col = (...els) => { const d = document.createElement("div"); d.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:14px"; els.forEach(e => d.appendChild(e)); return d; };
+          const BUILD = {
+            thread: () => ({ nw: 360, el: RU.thread({ name: lead.name, face: lead.face, channel: lead.channel, phone: "(555) 0142", messages: msgs }), a: (tl, el, t) => {
+              const ms = el.querySelectorAll(".ru-msg");
+              if (ms.length) tl.fromTo(Array.from(ms).slice(2), { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, stagger: 0.55, ease: "power3.out" }, t);
+            } }),
+            home: () => { const sel = RU.nextShowing({ when: "Today", status: "Confirmed", name: first(lead.name), time: "11:00 AM", address: L.address });
+              return { nw: 358, el: col(RU.homeHeader({ title: "Good morning", date: "Saturday, October 3" }), sel, RU.stats({ leads: 3, replied: 3, listings: 5, waiting: 0, median: "9s" })), a: (tl, el, t) => {
+                tl.fromTo(el.querySelector(".ru-next .st"), { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.6)" }, t);
+                tl.fromTo(el.querySelectorAll(".ru-stats .n"), { opacity: 0.2 }, { opacity: 1, duration: 0.4, stagger: 0.12, ease: "power2.out" }, t + 0.2);
+              } }; },
+            listing: () => ({ nw: 480, el: RU.listing({ photo: photo, address: L.address, city: "Rutherford, NJ", price: L.rent.replace("/mo", "") + "/mo", beds: /^\d/.test(L.beds) ? parseInt(L.beds) : 2, baths: /^\d/.test(L.baths) ? parseInt(L.baths) : 2, sqft: "1,180",
+              facts: [{ k: "price", label: "Rent", value: L.rent.replace("/mo", " / mo"), icon: "tag" }, { k: "pets", label: "Pets", value: L.pets.replace("Cats and small dogs OK", "Cats and small dogs"), icon: "paw" }, { k: "parking", label: "Parking", value: L.parking, icon: "car" }] }),
+              a: (tl, el, t) => { const f = el.querySelector('.ru-fact[data-k="pets"]'); tl.fromTo(f, { backgroundColor: "rgba(247,237,228,0)", borderColor: "rgba(247,237,228,0)" }, { backgroundColor: "rgba(247,237,228,0.10)", borderColor: "rgba(247,237,228,0.28)", duration: 0.5, ease: "power2.out" }, t); } }),
+            calendar: () => { const i = document.createElement("img"); i.src = B.ui.showings; i.alt = ""; i.className = ID + "-cap"; return { cap: true, el: i, a: (tl, el, t) => { tl.fromTo(el, { yPercent: 0 }, { yPercent: -5, duration: 4.5, ease: "sine.inOut" }, t - 0.5); } }; },
+            application: () => ({ nw: 380, el: col(RU.thread({ name: lead.name, face: lead.face, channel: lead.channel, phone: "(555) 0142", messages: [
+              { from: "out", me: true, text: "Sent you the rental application. You can sign it from your phone.", meta: "Alex · 12:20 PM" }, { from: "in", text: "Signed it, thanks!", meta: "12:31 PM" }] }),
+              RU.application({ title: "Rental application", sub: "Sent for signature", via: "DocuSign", status: "Signed" })), a: (tl, el, t) => {
+                tl.fromTo(el.querySelector(".ru-doc .st"), { opacity: 0, x: 12 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, t + 0.1);
+              } }),
+            pay: () => ({ nw: 460, el: (() => { const e = RU.payRequest({ client: fee.payer, amount: feeNum }); const p = e.querySelector(".opt.on .p"); if (p) p.textContent = "$" + Math.round(parseFloat(feeNum)); return e; })(), a: (tl, el, t) => {
+              const amt = el.querySelector(".amt"), st = { n: 0 }, tgt = parseFloat(feeNum);
+              tl.fromTo(st, { n: 0 }, { n: tgt, duration: 0.7, ease: "power3.out", onUpdate: () => { amt.textContent = st.n.toFixed(2); } }, t);
+            } }),
+            receipt: () => ({ nw: 460, el: col(RU.application({ title: "Rental application", sub: "Sent for signature", via: "DocuSign", status: "Signed" }), RU.receipt({ amount: fee.amount, status: "Paid", client: fee.payer, face: payerFace })), a: (tl, el, t) => {
+              tl.fromTo(el.querySelector(".ru-rcpt .st"), { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.45, ease: "back.out(1.6)" }, t + 0.1);
+            } }),
+            approval: () => ({ nw: 372, el: RU.approval({ name: lead4.name, face: lead4.face, channel: lead4.channel, ago: "4m", ask: "Can I see " + L.address + " on Saturday at 11?", draft: "Saturday at 11:00 AM is taken. I can offer 12:30 PM. Would that work?" }), a: (tl, el, t) => {
+              tl.fromTo(el.querySelector('[data-k="approve"]'), { scale: 1 }, { scale: 0.93, duration: 0.12, ease: "power2.in" }, t + 0.6);
+              tl.to(el.querySelector('[data-k="approve"]'), { scale: 1, duration: 0.3, ease: "back.out(2)" }, t + 0.72);
+            } }),
+            stats: () => ({ nw: 358, el: col(RU.stats({ leads: 3, replied: 3, listings: 5, waiting: 0, median: "9s" }), RU.nextShowing({ when: "Today", status: "Confirmed", name: first(lead.name), time: "11:00 AM", address: L.address })), a: () => {} })
+          };
+
+          const tl = gsap.timeline({ paused: true });
+          const cards = kinds.map((kind, i) => {
+            const b = (BUILD[kind] || BUILD.thread)();
+            const card = document.createElement("div"); card.className = ID + "-card";
+            Object.assign(card.style, { left: (-G.cw / 2) + "px", top: (-G.ch / 2) + "px", width: G.cw + "px", height: G.ch + "px" });
+            const face = document.createElement("div"); face.className = ID + "-face";
+            if (b.cap) { b.el.style.cssText += ";transform-origin:50% 0"; face.appendChild(b.el); }
+            else {
+              const body = document.createElement("div"); body.className = ID + "-body"; body.appendChild(b.el); face.appendChild(body);
+              card.appendChild(face); ring.appendChild(card);
+              const pad = 28, nh = body.offsetHeight || 1, z = Math.min((G.cw - pad * 2) / b.nw, (G.ch - pad * 2) / nh);
+              body.style.width = b.nw + "px"; body.style.zoom = z;
+              const hh = nh * z;
+              body.style.left = (G.cw - b.nw * z) / 2 / z + "px"; body.style.top = Math.max(pad, (G.ch - hh) / 2) / z + "px";
+            }
+            if (b.cap) { card.appendChild(face); ring.appendChild(card); }
+            const fog = document.createElement("div"); fog.className = ID + "-fog";
+            const sheen = document.createElement("div"); sheen.className = ID + "-sheen";
+            const edge = document.createElement("div"); edge.className = ID + "-edge";
+            face.append(sheen, edge, fog);
+            return { card, fog, el: b.el, a: b.a, i };
+          });
+
+          /* ring pose from one scalar f (index of the card in front) */
+          const S = { f: 0 };
+          const pose = () => {
+            ring.style.transform = "translateZ(" + (-R).toFixed(1) + "px) rotateY(" + (-S.f * stepDeg).toFixed(3) + "deg)";
+            cards.forEach(c => {
+              let d = (((c.i - S.f) % N) + N) % N; if (d > N / 2) d -= N;
+              const aa = Math.abs(d * stepDeg);
+              const q = Math.min(1, aa / 62), sc = 1 - 0.2 * q * q * (3 - 2 * q);
+              c.card.style.transform = "rotateY(" + (c.i * stepDeg).toFixed(3) + "deg) translateZ(" + R.toFixed(1) + "px) scale(" + sc.toFixed(4) + ")";
+              const x = Math.min(1, Math.max(0, (aa - 25) / 55)), fg = x * x * (3 - 2 * x) * 0.62;
+              c.fog.style.opacity = fg.toFixed(3);
+            });
+          };
+          const T0 = 0.95;
+          S.f = -2.2; pose();
+          tl.fromTo(S, { f: -2.2 }, { f: 0, duration: 0.95, ease: "power4.out", onUpdate: pose }, 0);
+          for (let s = 0; s < STEPS; s++) {
+            const t0 = T0 + 0.55 + s * STEP;
+            tl.to(S, { f: s + 1, duration: 0.55, ease: "power3.inOut", onUpdate: pose, immediateRender: false }, t0);
+          }
+          const endStep = T0 + 0.55 + (STEPS - 1) * STEP + 0.55, END = endStep + 0.8;
+          /* flight in from the lower left */
+          tl.fromTo(fly, { x: -W * 0.42, y: H * 0.34, rotation: -10, scale: 0.78, opacity: 0, filter: "blur(16px)" }, { x: 0, y: 0, rotation: 0, scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.95, ease: "expo.out" }, 0);
+          /* each card plays its own small animation while it is in front */
+          cards.forEach((c, i) => { if (c.a) { const at = i === 0 ? 0.9 : T0 + 0.55 + (i - 1) * STEP + 0.35; c.a(tl, c.el, at); } });
+          /* slow drift on the whole scene */
+          tl.fromTo("#" + ID + "-drift", { scale: 1.0, y: 0 }, { scale: 1.05, y: -14, duration: END + 0.5, ease: "sine.out" }, 0);
+          if (v.fadeOut) tl.to(fly, { y: -H * 1.05, rotation: 2, filter: "blur(12px)", duration: 0.45, ease: "power2.in", immediateRender: false }, END);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

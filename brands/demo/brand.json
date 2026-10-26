@@ -1,0 +1,305 @@
+{
+  "$schema": "../../brand.schema.json",
+  "id": "demo",
+  "name": "Tidewell",
+  "pronunciation": "TIDE-well",
+  "tagline": "The front desk that never sleeps.",
+  "endline": "Every patient answered. Every chair filled.",
+  "url": "tidewell.example",
+  "category": "Fictional demo brand: AI front desk for dental clinics (proves the kit re-themes)",
+  "palettes": {
+    "default": "tide",
+    "tide": {
+      "bg": "#030A1F",
+      "bg2": "#0B1633",
+      "ink": "#EEF3FF",
+      "inkSoft": "#C9D5F2",
+      "muted": "#8393B8",
+      "hair": "#1C2A4D",
+      "accent": "#3D7BFF",
+      "accentLift": "#79A4FF",
+      "accentDeep": "#0B2470",
+      "paper": "#E8F0FF",
+      "onPaper": "#061233",
+      "brand": "#1438A6",
+      "brandLit": "#3D63D6",
+      "brandDeep": "#061233",
+      "ok": "#36C99A",
+      "warn": "#F2C14E",
+      "info": "#79A4FF",
+      "glowRamp": [
+        "#000000",
+        "#020820",
+        "#051A5C",
+        "#0B2FA3",
+        "#1A55E6",
+        "#3D7BFF",
+        "#79A4FF",
+        "#BFD3FF",
+        "#EEF3FF"
+      ],
+      "glowCard": "#E6EEFF"
+    },
+    "mint": {
+      "bg": "#02140F",
+      "bg2": "#0A221B",
+      "ink": "#ECFFF7",
+      "inkSoft": "#C3EBDD",
+      "muted": "#7FA898",
+      "hair": "#173A2F",
+      "accent": "#2FD69B",
+      "accentLift": "#7DEBC1",
+      "accentDeep": "#064D37",
+      "paper": "#E9FFF6",
+      "onPaper": "#03251A",
+      "brand": "#0E7A57",
+      "brandLit": "#22A779",
+      "brandDeep": "#03251A",
+      "ok": "#2FD69B",
+      "warn": "#F2C14E",
+      "info": "#5AB8FF",
+      "glowRamp": [
+        "#000000",
+        "#011810",
+        "#043D2A",
+        "#086A49",
+        "#0E9A69",
+        "#2FD69B",
+        "#7DEBC1",
+        "#C2F7E2",
+        "#F0FFF9"
+      ],
+      "glowCard": "#E3FBF1"
+    }
+  },
+  "app": {
+    "note": "Fictional app tokens.",
+    "ground": "#030A1F",
+    "rail": "#07112A",
+    "raised": "#0E1A3A",
+    "raised2": "#142246",
+    "hair": "#22305A",
+    "text": "#EEF3FF",
+    "textSoft": "#C9D5F2",
+    "muted": "#8393B8",
+    "faint": "#6A7AA0",
+    "accent": "#3D7BFF",
+    "accentLift": "#79A4FF",
+    "amber": "#F2C14E",
+    "green": "#36C99A",
+    "info": "#79A4FF",
+    "olive": "#B7C95A",
+    "solid": "#E8F0FF",
+    "onSolid": "#061233",
+    "brandLit": "#3D63D6",
+    "brandDeep": "#061233",
+    "radii": {
+      "sm": 10,
+      "md": 14,
+      "lg": 18,
+      "xl": 26
+    },
+    "trackingDisplay": "-0.01em",
+    "trackingUi": "0em",
+    "dim": "#56658A",
+    "hairSoft": "#15224A"
+  },
+  "fonts": {
+    "display": {
+      "family": "Open Runde",
+      "files": {
+        "500": "assets/fonts/OpenRunde-Medium.woff2",
+        "600": "assets/fonts/OpenRunde-Semibold.woff2",
+        "700": "assets/fonts/OpenRunde-Bold.woff2"
+      },
+      "weight": 700,
+      "tracking": "-0.01em"
+    },
+    "ui": {
+      "family": "Geist Mono",
+      "files": {
+        "500": "assets/fonts/GeistMono-Medium.ttf",
+        "600": "assets/fonts/GeistMono-Semibold.ttf"
+      },
+      "weight": 500,
+      "tracking": "0em"
+    }
+  },
+  "logo": {
+    "tile": "assets/brand/tile.svg",
+    "mark": "assets/brand/mark.svg",
+    "wordmarkText": "Tidewell",
+    "askRibbon": "assets/brand/tile.svg",
+    "markColors": {
+      "tile": "#1438A6",
+      "ink": "#E8F0FF",
+      "reply": "#9FE3C9"
+    },
+    "markAnim": "tile",
+    "wordmark": {
+      "font": "display",
+      "family": "Open Runde",
+      "weight": 700,
+      "tracking": "-0.01em",
+      "onDark": "#EEF3FF",
+      "onLight": "#061233"
+    }
+  },
+  "partners": {
+    "whatsapp": "assets/logos/whatsapp.svg",
+    "stripe": "assets/logos/stripe.svg",
+    "docusign": "assets/logos/docusign.svg"
+  },
+  "ui": {
+    "home": "assets/ui/home.png",
+    "thread": "assets/ui/thread.png",
+    "ask": "assets/ui/ask.png",
+    "askOpen": "assets/ui/ask.png",
+    "showings": "assets/ui/calendar.png",
+    "showingsMonth": "assets/ui/calendar.png",
+    "captureSize": [
+      1206,
+      2622
+    ],
+    "note": "Demo screens rendered from the kit's own recreated-UI archetypes."
+  },
+  "phone": {
+    "frame": "assets/phone/phone-front.png",
+    "rect": "assets/phone/phone-front.json"
+  },
+  "faces": {
+    "mei": "assets/faces/mei.jpg",
+    "sam": "assets/faces/sam.jpg",
+    "devon": "assets/faces/devon.jpg",
+    "chris": "assets/faces/chris.jpg"
+  },
+  "photos": {
+    "dir": "assets/photos",
+    "hero": ""
+  },
+  "footage": {},
+  "cast": {
+    "realtor": {
+      "name": "Dr. Ellis",
+      "full": "Dr. Rowan Ellis"
+    },
+    "leads": [
+      {
+        "id": "mei",
+        "name": "Mei Chen",
+        "channel": "SMS",
+        "face": "mei"
+      },
+      {
+        "id": "sam",
+        "name": "Sam Okafor",
+        "channel": "WhatsApp",
+        "face": "sam"
+      },
+      {
+        "id": "devon",
+        "name": "Devon Price",
+        "channel": "SMS",
+        "face": "devon"
+      }
+    ],
+    "listing": {
+      "address": "Harbor Street Dental",
+      "rent": "$0 consult",
+      "beds": "Cleaning",
+      "baths": "45 min",
+      "pets": "Most insurance accepted",
+      "parking": "Free parking"
+    },
+    "phoneNumbers": "Fakes only."
+  },
+  "story": {
+    "beats": [
+      "A patient texts the clinic.",
+      "Tidewell answers instantly from the clinic's facts.",
+      "The patient picks a free time and the appointment books itself.",
+      "The visit lands on the clinic calendar.",
+      "The intake form gets signed and the deposit is paid.",
+      "The dentist just sees the patient."
+    ],
+    "sampleThread": [
+      {
+        "from": "lead",
+        "who": "Mei Chen",
+        "text": "Hi, do you have a cleaning slot this week? Do you take Delta Dental?"
+      },
+      {
+        "from": "assistant",
+        "text": "Hi! I'm Dr. Ellis's front desk. Yes, we take Delta Dental, and Thursday at 9 AM is open for a cleaning. Want it?"
+      },
+      {
+        "from": "lead",
+        "who": "Mei Chen",
+        "text": "Thursday works"
+      },
+      {
+        "from": "assistant",
+        "text": "You're booked for Thursday at 9 AM at Harbor Street Dental. See you then."
+      }
+    ],
+    "sampleAsk": {
+      "q": "Who's new today?",
+      "a": "Two new patients today. Mei Chen booked a cleaning for Thursday at 9 AM. Sam Okafor asked about insurance, and I answered: Delta Dental is accepted."
+    },
+    "sampleFee": {
+      "label": "Booking deposit",
+      "amount": "$25.00",
+      "payer": "Sam Okafor"
+    }
+  },
+  "truths": {
+    "may_claim": [
+      "Answers every patient text instantly.",
+      "Books appointments.",
+      "Collects deposits via Stripe."
+    ],
+    "never_claim": [
+      "Gives medical advice."
+    ],
+    "reply_rules": "No emoji."
+  },
+  "voice": {
+    "default_voice_id": "",
+    "alternates": [],
+    "model": "eleven_turbo_v2_5",
+    "speed": 1.1,
+    "stability": 0.6,
+    "similarity": 0.8,
+    "style": 0.15,
+    "notes": "Demo brand."
+  },
+  "copy": {
+    "banned_words": [
+      "revolutionize",
+      "seamless",
+      "unleash"
+    ],
+    "case": "sentence",
+    "no_emoji": true,
+    "no_all_caps": true,
+    "banned_fonts": [
+      "Instrument Serif Italic"
+    ]
+  },
+  "design": {
+    "look": "Deep navy, cobalt glow, rounded type.",
+    "never": [
+      "ALL CAPS",
+      "emojis"
+    ]
+  },
+  "kit": {
+    "css": [
+      "shared/realui.css"
+    ],
+    "js": [
+      "shared/realui.js"
+    ],
+    "source": "shared/uikit (generic app UI kit; colours via --app-* tokens)"
+  }
+}

@@ -1,0 +1,223 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"signer","type":"string","label":"Applicant who signs (blank = first BRAND.cast lead)","default":""},
+  {"id":"address","type":"string","label":"Listing address (blank = BRAND.cast.listing.address)","default":""},
+  {"id":"title","type":"string","label":"Document title","default":"Rental application"},
+  {"id":"date","type":"string","label":"Date signed","default":"Oct 24, 2026"},
+  {"id":"track","type":"boolean","label":"Show the status track (landscape only)","default":true},
+  {"id":"fadeOut","type":"boolean","label":"Blur out at the end","default":true}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-display); }
+        #__ID__-drift, #__ID__-cam { position: absolute; inset: 0; }
+        #__ID__-stage { position: absolute; left: 0; top: 0; width: 760px; height: 1000px; transform-origin: 0 0; perspective: 2000px; perspective-origin: 50% 40%; }
+        #__ID__-slide { position: absolute; inset: 0; transform-style: preserve-3d; }
+        #__ID__-shadow { position: absolute; left: 30px; right: 10px; bottom: -10px; height: 80px; background: radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,.65), rgba(0,0,0,0)); filter: blur(24px); transform: translateZ(-50px); }
+        #__ID__-glass { position: absolute; left: -22px; right: -22px; top: -22px; bottom: -22px; border-radius: 30px;
+          background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.04) 40%), color-mix(in srgb, var(--accent-deep) 45%, rgba(10,10,10,.6));
+          backdrop-filter: blur(24px) saturate(1.5) brightness(1.15);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -10px 24px rgba(0,0,0,.2), 0 30px 80px rgba(0,0,0,.4); }
+        #__ID__-glassedge { position: absolute; left: -22px; right: -22px; top: -22px; bottom: -22px; border-radius: 30px; padding: 2.5px; pointer-events: none;
+          background: linear-gradient(150deg, rgba(255,255,255,.85), rgba(255,255,255,.14) 34%, rgba(255,255,255,.1) 66%, rgba(255,255,255,.5));
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        #__ID__-paper { position: absolute; inset: 0; border-radius: 8px; overflow: hidden; color: var(--on-paper);
+          background: radial-gradient(120% 80% at 16% 4%, rgba(255,255,255,.95), rgba(255,255,255,0) 55%), linear-gradient(172deg, color-mix(in srgb, var(--paper) 55%, #fff) 0%, color-mix(in srgb, var(--paper) 80%, #fff) 62%, var(--paper) 100%);
+          box-shadow: inset 0 2px 0 rgba(255,255,255,.9), 0 0 0 1px color-mix(in srgb, var(--on-paper) 12%, transparent), 0 24px 50px rgba(0,0,0,.45); }
+        #__ID__-fold { position: absolute; inset: 0; background: linear-gradient(100deg, rgba(255,255,255,0) 62%, color-mix(in srgb, var(--on-paper) 5%, transparent) 84%, rgba(255,255,255,.3) 91%, color-mix(in srgb, var(--on-paper) 4%, transparent) 100%); }
+        #__ID__-curl { position: absolute; right: 0; bottom: 0; width: 160px; height: 160px; background: linear-gradient(315deg, color-mix(in srgb, var(--on-paper) 26%, transparent) 0%, color-mix(in srgb, var(--on-paper) 8%, transparent) 22%, rgba(255,255,255,0) 52%); }
+        #__ID__-sheen { position: absolute; top: -10%; left: 0; width: 160px; height: 120%; opacity: 0; transform: skewX(-16deg); mix-blend-mode: soft-light; filter: blur(12px); background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.85), rgba(255,255,255,0)); }
+        .__ID__-a { position: absolute; }
+        .__ID__-mute { color: color-mix(in srgb, var(--on-paper) 52%, var(--paper)); }
+        #__ID__-brand { left: 60px; top: 50px; display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 26px; letter-spacing: var(--track-display); }
+        #__ID__-brand i { width: 40px; height: 26px; display: block; background: var(--brand); -webkit-mask: var(--mark) center / contain no-repeat; mask: var(--mark) center / contain no-repeat; }
+        #__ID__-env { right: 60px; top: 56px; font-size: 18px; font-family: var(--font-ui); }
+        #__ID__-title { left: 60px; top: 116px; font-size: 58px; font-weight: 600; letter-spacing: var(--track-display); line-height: 1; }
+        #__ID__-addr { left: 60px; top: 192px; font-size: 28px; font-weight: 500; }
+        .__ID__-rule { left: 60px; right: 60px; height: 2px; background: color-mix(in srgb, var(--on-paper) 16%, var(--paper)); }
+        .__ID__-field { left: 60px; right: 60px; display: flex; align-items: flex-end; }
+        .__ID__-lab { width: 210px; font-size: 20px; font-weight: 500; padding-bottom: 8px; font-family: var(--font-ui); }
+        .__ID__-val { flex: 1; font-size: 31px; font-weight: 500; padding-bottom: 8px; border-bottom: 2px solid color-mix(in srgb, var(--on-paper) 14%, var(--paper)); white-space: nowrap; }
+        #__ID__-fine { left: 60px; right: 60px; top: 618px; font-size: 18px; line-height: 1.5; font-family: var(--font-ui); }
+        #__ID__-sigbox { left: 40px; top: 706px; width: 470px; height: 186px; border-radius: 10px; background: color-mix(in srgb, #FFD33D 22%, transparent); border: 2px solid #FFD33D; }
+        #__ID__-tag { left: 18px; top: 724px; height: 54px; padding: 0 22px 0 40px; display: flex; align-items: center; font: 600 28px/1 var(--font-display); color: #231a00; background: linear-gradient(180deg, #FFE27A, #FFC82C); clip-path: polygon(0 50%, 28px 0, 100% 0, 100% 100%, 28px 100%); filter: drop-shadow(0 6px 8px rgba(0,0,0,.35)); }
+        #__ID__-x { left: 66px; top: 790px; font-size: 30px; }
+        #__ID__-sigarea { left: 80px; top: 740px; width: 420px; height: 110px; }
+        #__ID__-sigsvg { position: absolute; left: 0; top: 0; width: 420px; height: 110px; overflow: visible; }
+        #__ID__-sigline { left: 60px; top: 850px; width: 440px; height: 2px; background: color-mix(in srgb, var(--on-paper) 80%, var(--paper)); }
+        #__ID__-siglab { left: 60px; top: 862px; font-size: 19px; font-family: var(--font-ui); }
+        #__ID__-date { left: 540px; top: 818px; width: 170px; font-size: 27px; font-weight: 500; white-space: nowrap; opacity: 0; }
+        #__ID__-dateline { left: 540px; top: 850px; width: 160px; height: 2px; background: color-mix(in srgb, var(--on-paper) 80%, var(--paper)); }
+        #__ID__-datelab { left: 540px; top: 862px; font-size: 19px; font-family: var(--font-ui); }
+        #__ID__-foot { left: 60px; bottom: 36px; font-size: 15px; font-family: var(--font-ui); }
+        #__ID__-chip { position: absolute; height: 92px; border-radius: 46px; display: flex; align-items: center; white-space: nowrap; overflow: hidden; opacity: 0;
+          background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.05)), color-mix(in srgb, var(--accent-deep) 55%, rgba(10,10,10,.5));
+          backdrop-filter: blur(20px) saturate(1.5) brightness(1.12);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.6), inset 0 -10px 24px rgba(0,0,0,.18), 0 26px 60px rgba(0,0,0,.45); color: #fff; }
+        #__ID__-chiptint { position: absolute; inset: 0; border-radius: 46px; opacity: 0; background: color-mix(in srgb, var(--ok) 42%, transparent); }
+        #__ID__-chipedge { position: absolute; inset: 0; border-radius: 46px; padding: 2.5px; pointer-events: none;
+          background: linear-gradient(155deg, rgba(255,255,255,.9), rgba(255,255,255,.18) 35%, rgba(255,255,255,.12) 65%, rgba(255,255,255,.55));
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        #__ID__-mark { flex: none; width: 68px; height: 68px; margin-left: 12px; border-radius: 50%; background: var(--paper); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 8px rgba(0,0,0,.16), 0 4px 14px rgba(0,0,0,.3); z-index: 1; }
+        #__ID__-mark img { width: 40px; height: 40px; }
+        #__ID__-sts { position: relative; flex: none; width: 260px; height: 92px; margin-left: 20px; }
+        .__ID__-st { position: absolute; left: 0; top: 0; height: 92px; display: flex; align-items: center; font-size: 42px; font-weight: 600; letter-spacing: var(--track-display); opacity: 0; }
+        .__ID__-st small { display: block; }
+        #__ID__-stdot { flex: none; width: 18px; height: 18px; border-radius: 50%; margin-right: 24px; background: var(--info); box-shadow: 0 0 0 5px color-mix(in srgb, var(--info) 30%, transparent); }
+        #__ID__-ck { position: absolute; right: 16px; top: 16px; width: 60px; height: 60px; border-radius: 50%; background: var(--ok); display: flex; align-items: center; justify-content: center; opacity: 0; box-shadow: inset 0 -3px 6px rgba(0,0,0,.2), inset 0 2px 0 rgba(255,255,255,.4); }
+        #__ID__-track { position: absolute; opacity: 0; }
+        .__ID__-node { position: absolute; top: 0; display: flex; flex-direction: column; align-items: center; gap: 14px; width: 170px; font-size: 26px; font-weight: 500; color: rgba(255,255,255,.55); }
+        .__ID__-node i { width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.2); box-shadow: inset 0 1px 0 rgba(255,255,255,.4); }
+        #__ID__-trline { position: absolute; top: 10px; height: 3px; background: rgba(255,255,255,.2); }
+        #__ID__-trfill { position: absolute; top: 10px; height: 3px; width: 0; background: var(--ok); }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <div id="__ID__-drift"><div id="__ID__-cam">
+          <div id="__ID__-stage"><div id="__ID__-slide">
+            <div id="__ID__-shadow"></div>
+            <div id="__ID__-glass"></div><div id="__ID__-glassedge"></div>
+            <div id="__ID__-paper">
+              <div id="__ID__-fold"></div>
+              <div class="__ID__-a" id="__ID__-brand"><i></i><span></span></div>
+              <div class="__ID__-a __ID__-mute" id="__ID__-env">Envelope 7F3A-92C1-44B0</div>
+              <div class="__ID__-a" id="__ID__-title">Rental application</div>
+              <div class="__ID__-a __ID__-mute" id="__ID__-addr"></div>
+              <div class="__ID__-a __ID__-rule" style="top:250px"></div>
+              <div class="__ID__-a __ID__-field" style="top:286px"><div class="__ID__-lab __ID__-mute">Applicant</div><div class="__ID__-val" id="__ID__-v0"></div></div>
+              <div class="__ID__-a __ID__-field" style="top:362px"><div class="__ID__-lab __ID__-mute">Property</div><div class="__ID__-val" id="__ID__-v1"></div></div>
+              <div class="__ID__-a __ID__-field" style="top:438px"><div class="__ID__-lab __ID__-mute">Monthly rent</div><div class="__ID__-val" id="__ID__-v2"></div></div>
+              <div class="__ID__-a __ID__-field" style="top:514px"><div class="__ID__-lab __ID__-mute">Listing agent</div><div class="__ID__-val" id="__ID__-v3"></div></div>
+              <div class="__ID__-a __ID__-mute" id="__ID__-fine"></div>
+              <div class="__ID__-a" id="__ID__-sigbox"></div>
+              <div class="__ID__-a __ID__-mute" id="__ID__-x">x</div>
+              <div class="__ID__-a" id="__ID__-sigarea">
+                <svg id="__ID__-sigsvg" viewBox="-200 -720 5200 1180" preserveAspectRatio="xMinYMid meet">
+                  <defs><mask id="__ID__-m" maskUnits="userSpaceOnUse" x="-400" y="-900" width="5800" height="1600">
+                    <path id="__ID__-sw" d="M-250 -620 L50 300 L350 -620 L650 300 L950 -620 L1250 300 L1550 -620 L1850 300 L2150 -620 L2450 300 L2750 -620 L3050 300 L3350 -620 L3650 300 L3950 -620 L4250 300 L4550 -620 L4850 300" pathLength="1" fill="none" stroke="#fff" stroke-width="440" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="1"/>
+                  </mask></defs>
+                  <g mask="url(#__ID__-m)"><path d="M510 -501Q514 -491 515.5 -480.0Q517 -469 517 -460Q517 -429 502.5 -402.0Q488 -375 465.0 -355.5Q442 -336 412.0 -324.5Q382 -313 350 -313Q286 -313 250.5 -344.0Q215 -375 215 -425Q215 -479 248.0 -518.5Q281 -558 334.0 -586.0Q387 -614 453.5 -631.5Q520 -649 586.0 -659.0Q652 -669 711.5 -672.5Q771 -676 811 -676Q852 -676 885.5 -686.0Q919 -696 939 -696Q944 -696 950.0 -693.5Q956 -691 956 -684Q956 -677 947.0 -672.5Q938 -668 924.5 -666.5Q911 -665 894.5 -664.5Q878 -664 864 -664Q834 -664 797.0 -629.5Q760 -595 720.0 -539.5Q680 -484 638.5 -415.5Q597 -347 557.5 -279.5Q518 -212 483.0 -151.5Q448 -91 421 -53L423 -51Q482 -69 525.0 -88.0Q568 -107 603.0 -132.0Q638 -157 668.0 -190.0Q698 -223 729 -268L737 -263Q706 -217 675.0 -182.5Q644 -148 606.5 -121.5Q569 -95 521.0 -74.5Q473 -54 408 -36Q369 23 323.0 82.5Q277 142 222.5 190.0Q168 238 105.0 268.0Q42 298 -30 298Q-59 298 -87.0 290.0Q-115 282 -137.0 266.5Q-159 251 -172.5 229.0Q-186 207 -186 179Q-186 135 -164.5 105.5Q-143 76 -105.0 56.5Q-67 37 -15.5 25.0Q36 13 95.5 3.5Q155 -6 220.0 -14.5Q285 -23 349 -36Q381 -86 414.5 -145.5Q448 -205 484.5 -266.5Q521 -328 560.0 -388.5Q599 -449 642.5 -501.5Q686 -554 733.5 -596.0Q781 -638 834 -662V-664Q792 -664 733.5 -660.0Q675 -656 611.5 -646.0Q548 -636 485.5 -618.5Q423 -601 373.5 -573.0Q324 -545 293.5 -505.5Q263 -466 263 -413Q263 -378 284.0 -351.5Q305 -325 350 -325Q380 -325 408.0 -335.5Q436 -346 457.5 -364.5Q479 -383 492.0 -408.0Q505 -433 505 -461Q505 -478 499 -500ZM-32 286Q30 286 86.5 253.0Q143 220 191.0 172.0Q239 124 277.0 70.5Q315 17 340 -23Q281 -11 222.5 -3.0Q164 5 111.0 13.5Q58 22 12.5 33.5Q-33 45 -66.5 63.5Q-100 82 -119.0 110.5Q-138 139 -138 181Q-138 237 -107.5 261.5Q-77 286 -32 286ZM1180 -253Q1156 -226 1126.0 -210.0Q1096 -194 1067 -194Q1039 -194 1019.0 -206.5Q999 -219 988 -236H986Q976 -198 949.0 -155.0Q922 -112 884.5 -76.0Q847 -40 802.0 -16.0Q757 8 710 8Q667 8 645.0 -17.0Q623 -42 623 -84Q623 -106 634.0 -135.0Q645 -164 664.5 -193.5Q684 -223 710.5 -251.5Q737 -280 768.0 -302.5Q799 -325 833.5 -338.5Q868 -352 903 -352Q944 -352 966.5 -328.0Q989 -304 991 -266Q993 -243 1012.5 -223.5Q1032 -204 1066 -204Q1096 -204 1122.5 -219.0Q1149 -234 1172 -258ZM677 -60Q677 -34 687.0 -19.0Q697 -4 717 -4Q744 -4 770.5 -18.5Q797 -33 821.5 -56.5Q846 -80 867.0 -110.0Q888 -140 903.5 -172.0Q919 -204 928.0 -234.5Q937 -265 937 -290Q937 -311 926.5 -325.5Q916 -340 894 -340Q873 -340 849.0 -326.5Q825 -313 800.5 -291.0Q776 -269 754.0 -240.0Q732 -211 714.5 -180.0Q697 -149 687.0 -118.0Q677 -87 677 -60ZM1277 -344 1150 -159 1152 -157Q1166 -174 1187.5 -196.5Q1209 -219 1234.5 -242.5Q1260 -266 1288.0 -289.0Q1316 -312 1343 -330Q1348 -340 1354.0 -346.0Q1360 -352 1378 -352Q1389 -352 1397.5 -351.5Q1406 -351 1415 -350Q1398 -333 1382.0 -308.5Q1366 -284 1366 -255Q1366 -232 1377.5 -219.0Q1389 -206 1406 -206Q1421 -206 1435.5 -212.0Q1450 -218 1463.0 -227.0Q1476 -236 1488.0 -246.0Q1500 -256 1509 -264L1515 -260Q1505 -250 1492.0 -238.5Q1479 -227 1464.0 -217.0Q1449 -207 1432.0 -200.5Q1415 -194 1397 -194Q1365 -194 1345.5 -213.5Q1326 -233 1326 -268Q1326 -292 1337 -311L1335 -313Q1294 -285 1245.0 -239.5Q1196 -194 1141 -132Q1121 -110 1099.5 -74.0Q1078 -38 1062 0H997Q1051 -86 1105.0 -171.0Q1159 -256 1216 -344ZM2065 -692Q2026 -630 1980.0 -561.0Q1934 -492 1888.0 -424.0Q1842 -356 1799.5 -292.5Q1757 -229 1724.0 -176.0Q1691 -123 1671.5 -84.5Q1652 -46 1652 -28Q1652 -17 1657.5 -10.5Q1663 -4 1674 -4Q1699 -4 1731.0 -24.0Q1763 -44 1808 -87Q1847 -125 1884.0 -171.5Q1921 -218 1948 -263L1956 -259Q1947 -243 1932.5 -221.5Q1918 -200 1900.5 -177.0Q1883 -154 1863.0 -130.5Q1843 -107 1822 -86Q1782 -45 1743.0 -18.5Q1704 8 1671 8Q1639 8 1623.5 -5.5Q1608 -19 1608 -40Q1608 -59 1616.0 -77.0Q1624 -95 1632 -109L1630 -110Q1614 -92 1594.5 -71.5Q1575 -51 1553.0 -33.0Q1531 -15 1506.5 -3.5Q1482 8 1456 8Q1420 8 1400.5 -14.0Q1381 -36 1381 -66Q1381 -108 1410.0 -158.0Q1439 -208 1482.5 -251.0Q1526 -294 1576.0 -323.0Q1626 -352 1669 -352Q1701 -352 1720.0 -332.0Q1739 -312 1738 -281H1741L1999 -692ZM1710 -280Q1710 -304 1702.0 -322.0Q1694 -340 1665 -340Q1645 -340 1620.5 -326.0Q1596 -312 1571.0 -289.0Q1546 -266 1522.5 -236.5Q1499 -207 1481.0 -176.5Q1463 -146 1452.0 -117.0Q1441 -88 1441 -65Q1441 -44 1449.0 -30.0Q1457 -16 1478 -16Q1496 -16 1519.5 -30.0Q1543 -44 1569.0 -66.5Q1595 -89 1620.0 -118.0Q1645 -147 1665.0 -176.0Q1685 -205 1697.5 -232.5Q1710 -260 1710 -280ZM2219 -344H2284Q2247 -292 2213.0 -243.0Q2179 -194 2152.5 -152.5Q2126 -111 2110.0 -79.5Q2094 -48 2094 -30Q2094 -4 2121 -4Q2142 -4 2174.5 -24.5Q2207 -45 2245.0 -81.0Q2283 -117 2323.0 -165.0Q2363 -213 2399 -267L2405 -265Q2378 -224 2341.5 -176.5Q2305 -129 2265.0 -88.0Q2225 -47 2185.0 -19.5Q2145 8 2110 8Q2081 8 2067.5 -6.5Q2054 -21 2054 -41Q2054 -55 2058.5 -68.5Q2063 -82 2068 -96L2066 -97Q2053 -83 2033.5 -64.5Q2014 -46 1991.5 -30.0Q1969 -14 1945.0 -3.0Q1921 8 1899 8Q1862 8 1847.0 -15.0Q1832 -38 1832 -67Q1832 -108 1858.0 -157.5Q1884 -207 1924.0 -250.5Q1964 -294 2011.0 -323.0Q2058 -352 2100 -352Q2120 -352 2135.0 -346.5Q2150 -341 2160.0 -331.5Q2170 -322 2175.5 -310.0Q2181 -298 2184 -285H2186ZM1892 -64Q1892 -41 1901.5 -28.5Q1911 -16 1928 -16Q1945 -16 1968.0 -28.5Q1991 -41 2016.0 -62.0Q2041 -83 2065.5 -110.5Q2090 -138 2109.0 -169.0Q2128 -200 2140.0 -232.0Q2152 -264 2152 -293Q2152 -316 2139.0 -328.0Q2126 -340 2107 -340Q2077 -340 2040.0 -314.0Q2003 -288 1970.0 -247.5Q1937 -207 1914.5 -158.0Q1892 -109 1892 -64ZM2496 -344 2364 -161 2366 -159Q2387 -184 2415.0 -217.5Q2443 -251 2475.0 -281.0Q2507 -311 2541.5 -331.5Q2576 -352 2610 -352Q2640 -352 2656.5 -335.5Q2673 -319 2673 -293Q2673 -277 2661.5 -255.0Q2650 -233 2633.0 -208.0Q2616 -183 2596.0 -157.0Q2576 -131 2559.0 -107.5Q2542 -84 2530.5 -64.5Q2519 -45 2519 -32Q2519 -4 2547 -4Q2579 -4 2615.0 -25.5Q2651 -47 2701 -98Q2721 -118 2741.5 -142.0Q2762 -166 2781.0 -189.5Q2800 -213 2815.5 -234.0Q2831 -255 2840 -269L2847 -265Q2827 -235 2795.5 -193.5Q2764 -152 2727 -112Q2705 -88 2682.0 -66.0Q2659 -44 2636.0 -27.5Q2613 -11 2590.5 -1.5Q2568 8 2546 8Q2517 8 2498.0 -8.0Q2479 -24 2479 -52Q2479 -82 2503.0 -117.5Q2527 -153 2556.0 -189.0Q2585 -225 2609.0 -258.0Q2633 -291 2633 -316Q2633 -328 2625.0 -334.0Q2617 -340 2604 -340Q2579 -340 2548.0 -321.5Q2517 -303 2484.5 -272.5Q2452 -242 2419.5 -204.5Q2387 -167 2359.0 -129.5Q2331 -92 2309.0 -57.5Q2287 -23 2276 0H2214Q2240 -44 2269.5 -89.5Q2299 -135 2328.0 -179.5Q2357 -224 2383.5 -265.5Q2410 -307 2431 -341ZM3621 -494Q3622 -484 3622 -475Q3622 -466 3622 -457Q3622 -418 3603.5 -382.5Q3585 -347 3551.5 -319.5Q3518 -292 3472.0 -276.0Q3426 -260 3371 -260Q3289 -260 3248.5 -297.0Q3208 -334 3208 -393Q3208 -441 3240.5 -492.0Q3273 -543 3348.0 -585.0Q3423 -627 3546.0 -654.5Q3669 -682 3851 -682Q3907 -682 3953.0 -679.0Q3999 -676 4032 -676Q4061 -676 4080.5 -679.0Q4100 -682 4114 -682Q4126 -682 4136.0 -674.5Q4146 -667 4146 -653Q4146 -644 4140.5 -638.5Q4135 -633 4121.0 -631.0Q4107 -629 4083.5 -628.5Q4060 -628 4024 -628Q3954 -628 3907.5 -603.5Q3861 -579 3821.0 -529.5Q3781 -480 3738.0 -405.5Q3695 -331 3631 -232Q3609 -198 3575.5 -155.0Q3542 -112 3496.0 -74.0Q3450 -36 3391.0 -10.0Q3332 16 3258 16Q3230 16 3199.0 9.5Q3168 3 3142.5 -11.5Q3117 -26 3100.5 -50.0Q3084 -74 3084 -109Q3084 -131 3096.5 -146.5Q3109 -162 3132 -162Q3148 -162 3158.5 -151.5Q3169 -141 3169 -125Q3169 -110 3159.0 -101.0Q3149 -92 3136 -92Q3129 -92 3124 -94Q3129 -46 3169.0 -21.0Q3209 4 3268 4Q3324 4 3371.0 -21.0Q3418 -46 3458.5 -87.0Q3499 -128 3535.0 -180.5Q3571 -233 3606.5 -289.5Q3642 -346 3678.0 -401.5Q3714 -457 3754.0 -503.0Q3794 -549 3839.5 -581.5Q3885 -614 3940 -624V-626Q3895 -626 3842.0 -630.0Q3789 -634 3744 -634Q3618 -634 3520.5 -615.5Q3423 -597 3356.0 -564.5Q3289 -532 3254.5 -488.0Q3220 -444 3220 -393Q3220 -333 3260.5 -302.5Q3301 -272 3375 -272Q3427 -272 3470.0 -287.5Q3513 -303 3544.0 -328.5Q3575 -354 3592.5 -387.0Q3610 -420 3610 -455Q3610 -465 3610 -474Q3610 -484 3609 -494ZM4135 -344H4200Q4163 -292 4129.0 -243.0Q4095 -194 4068.5 -152.5Q4042 -111 4026.0 -79.5Q4010 -48 4010 -30Q4010 -4 4037 -4Q4058 -4 4090.5 -24.5Q4123 -45 4161.0 -81.0Q4199 -117 4239.0 -165.0Q4279 -213 4315 -267L4321 -265Q4294 -224 4257.5 -176.5Q4221 -129 4181.0 -88.0Q4141 -47 4101.0 -19.5Q4061 8 4026 8Q3997 8 3983.5 -6.5Q3970 -21 3970 -41Q3970 -55 3974.5 -68.5Q3979 -82 3984 -96L3982 -97Q3969 -83 3949.5 -64.5Q3930 -46 3907.5 -30.0Q3885 -14 3861.0 -3.0Q3837 8 3815 8Q3778 8 3763.0 -15.0Q3748 -38 3748 -67Q3748 -108 3774.0 -157.5Q3800 -207 3840.0 -250.5Q3880 -294 3927.0 -323.0Q3974 -352 4016 -352Q4036 -352 4051.0 -346.5Q4066 -341 4076.0 -331.5Q4086 -322 4091.5 -310.0Q4097 -298 4100 -285H4102ZM3808 -64Q3808 -41 3817.5 -28.5Q3827 -16 3844 -16Q3861 -16 3884.0 -28.5Q3907 -41 3932.0 -62.0Q3957 -83 3981.5 -110.5Q4006 -138 4025.0 -169.0Q4044 -200 4056.0 -232.0Q4068 -264 4068 -293Q4068 -316 4055.0 -328.0Q4042 -340 4023 -340Q3993 -340 3956.0 -314.0Q3919 -288 3886.0 -247.5Q3853 -207 3830.5 -158.0Q3808 -109 3808 -64ZM4488 -460 4409 -344H4541L4535 -332H4401Q4361 -267 4329.5 -219.5Q4298 -172 4276.5 -137.5Q4255 -103 4244.0 -79.5Q4233 -56 4233 -38Q4233 -19 4246.0 -11.5Q4259 -4 4276 -4Q4312 -4 4355.5 -31.5Q4399 -59 4442.0 -99.0Q4485 -139 4524.0 -184.0Q4563 -229 4590 -265L4596 -261Q4562 -218 4521.5 -170.5Q4481 -123 4438.0 -83.5Q4395 -44 4351.5 -18.0Q4308 8 4269 8Q4238 8 4215.5 -11.0Q4193 -30 4193 -64Q4193 -87 4206.0 -115.5Q4219 -144 4240.0 -177.0Q4261 -210 4287.5 -249.0Q4314 -288 4342 -332H4288L4294 -344H4350L4428 -460ZM4770 -312Q4770 -326 4762.5 -333.0Q4755 -340 4744 -340Q4723 -340 4698.5 -323.5Q4674 -307 4650.0 -282.5Q4626 -258 4606.5 -230.0Q4587 -202 4577 -180Q4599 -184 4632.0 -195.5Q4665 -207 4695.5 -224.0Q4726 -241 4748.0 -263.5Q4770 -286 4770 -312ZM4932 -259Q4917 -234 4894.5 -204.0Q4872 -174 4843.5 -144.5Q4815 -115 4782.5 -87.5Q4750 -60 4715.0 -38.5Q4680 -17 4644.5 -4.5Q4609 8 4575 8Q4533 8 4510.0 -13.5Q4487 -35 4487 -75Q4487 -119 4513.5 -167.5Q4540 -216 4581.0 -257.0Q4622 -298 4671.0 -325.0Q4720 -352 4765 -352Q4790 -352 4804.0 -341.5Q4818 -331 4818 -311Q4818 -287 4792.0 -264.5Q4766 -242 4728.5 -223.5Q4691 -205 4648.0 -190.5Q4605 -176 4572 -169Q4561 -149 4554.0 -124.0Q4547 -99 4547 -74Q4547 -62 4549.5 -50.5Q4552 -39 4557.5 -29.5Q4563 -20 4572.5 -14.0Q4582 -8 4596 -8Q4629 -8 4673.5 -29.5Q4718 -51 4764.0 -87.0Q4810 -123 4852.0 -169.0Q4894 -215 4924 -264Z" fill="color-mix(in srgb, var(--info) 35%, #0a0f2a)"/></g>
+                </svg>
+              </div>
+              <div class="__ID__-a" id="__ID__-sigline"></div>
+              <div class="__ID__-a __ID__-mute" id="__ID__-siglab">Signature of applicant</div>
+              <div class="__ID__-a" id="__ID__-tag">Sign</div>
+              <div class="__ID__-a" id="__ID__-date"></div>
+              <div class="__ID__-a" id="__ID__-dateline"></div>
+              <div class="__ID__-a __ID__-mute" id="__ID__-datelab">Date signed</div>
+              <div class="__ID__-a __ID__-mute" id="__ID__-foot">Sent for signature with DocuSign</div>
+              <div id="__ID__-curl"></div><div id="__ID__-sheen"></div>
+            </div>
+          </div></div>
+          <div id="__ID__-chip"><div id="__ID__-chiptint"></div><div id="__ID__-mark"><img alt=""></div><div id="__ID__-sts">
+              <div class="__ID__-st" id="__ID__-s0"><span id="__ID__-stdot"></span>Sent</div>
+              <div class="__ID__-st" id="__ID__-s1"><span class="__ID__-dd"></span>Delivered</div>
+              <div class="__ID__-st" id="__ID__-s2">Viewed</div>
+              <div class="__ID__-st" id="__ID__-s3">Signed</div>
+            </div><div id="__ID__-ck"><svg width="36" height="36" viewBox="0 0 32 32"><path id="__ID__-tick" d="M7 17 L13.5 23 L25 9" fill="none" stroke="#04271c" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></div><div id="__ID__-chipedge"></div></div>
+          <div id="__ID__-track"></div>
+        </div></div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe;
+          const v = window.__hyperframes.getVariables();
+          const $ = (s) => document.getElementById(ID + "-" + s);
+          const signer = v.signer || B.cast.leads[0].name, address = v.address || B.cast.listing.address;
+          $("brand").lastChild.textContent = B.logo.wordmarkText || B.name;
+          $("brand").firstChild.style.setProperty("--mark", "url('" + B.logo.mark + "')");
+          $("addr").textContent = address; $("title").textContent = v.title;
+          $("v0").textContent = signer; $("v1").textContent = address; $("v2").textContent = B.cast.listing.rent; $("v3").textContent = B.cast.realtor.full;
+          $("fine").textContent = "By signing, the applicant confirms that the information above is accurate and authorizes " + B.cast.realtor.full + " to verify employment and rental history.";
+          $("date").textContent = v.date;
+          if (signer !== "Jordan Tate") {
+            const rnd = HF.rng(Array.from(signer).reduce((a, c) => a * 31 + c.charCodeAt(0), 7)), n = Math.max(6, Math.round(signer.length * 1.1));
+            const pts = [[-150, -60]]; let x = -150; const step = 4500 / n;
+            for (let i = 0; i < n; i++) { x += step * (0.7 + rnd() * 0.6); pts.push([x - step * 0.45, -(i === 0 ? 560 : 160 + rnd() * 420)]); pts.push([x, 20 + rnd() * 90]); }
+            pts.push([x + 700, -40]);
+            let d = "M" + pts[0][0] + " " + pts[0][1];
+            for (let i = 0; i < pts.length - 1; i++) { const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)]; d += " C" + (p1[0] + (p2[0] - p0[0]) / 6) + " " + (p1[1] + (p2[1] - p0[1]) / 6) + " " + (p2[0] - (p3[0] - p1[0]) / 6) + " " + (p2[1] - (p3[1] - p1[1]) / 6) + " " + p2[0] + " " + p2[1]; }
+            const g = document.querySelector("#" + ID + "-sigsvg g"); g.removeAttribute("mask");
+            g.innerHTML = '<path id="' + ID + '-sw2" d="' + d + '" pathLength="1" fill="none" stroke="color-mix(in srgb, var(--info) 35%, #0a0f2a)" stroke-width="52" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1" stroke-dashoffset="1"/>';
+            document.getElementById(ID + "-sw").id = ID + "-swx";
+          }
+          if (B.partners.docusign) $("mark").firstChild.src = B.partners.docusign; else $("mark").innerHTML = HF.realui.icons.doc("#1a1a1a", 38);
+
+          // ---- layout
+          const PW = 760, PH = 1000, chipW = 68 + 12 + 20 + 260 + 36;
+          const land = HF.land;
+          const stageScale = land ? (H - 150) / (PH + 44) : Math.min((W - safe.left - safe.right - 44) / PW, (H - safe.top - safe.bottom - 130) / PH);
+          const sw = PW * stageScale, sh = PH * stageScale;
+          const cx0 = (safe.left + (W - safe.right)) / 2;
+          let sx, sy;
+          if (land) { sx = Math.round(W * 0.5 - sw - 40); sy = Math.round((H - sh) / 2); }
+          else { sx = Math.round(cx0 - sw / 2); sy = Math.round(safe.top + 126 + (H - safe.top - safe.bottom - 126 - sh) / 2); }
+          const stage = $("stage"); stage.style.left = sx + "px"; stage.style.top = sy + "px"; stage.style.transform = "scale(" + stageScale + ")";
+          const chip = $("chip"); const cs = land ? 1.9 : Math.min(1.25, (W - safe.left - safe.right) / chipW);
+          chip.style.width = chipW + "px"; chip.style.transformOrigin = "0 0"; chip.style.transform = "scale(" + cs + ")";
+          let chipX, chipY;
+          if (land) { chipX = Math.round(W * 0.5 + 80); chipY = Math.round(H * 0.5 - 190); }
+          else { chipX = Math.round(cx0 - chipW * cs / 2); chipY = sy - Math.round(92 * cs) - 24; }
+          chip.style.left = chipX + "px"; chip.style.top = chipY + "px";
+          chip.style.setProperty("--x", "0");
+          // status track (landscape): four labelled nodes under the chip
+          const tr = $("track"); const names = ["Sent", "Delivered", "Viewed", "Signed"];
+          const showTrack = land && v.track;
+          if (showTrack) {
+            const tw = 170 * 4, tx = chipX + 10, ty = chipY + 92 * cs + 80; tr.style.transformOrigin = "0 0"; tr.style.scale = "1.05";
+            tr.style.left = tx + "px"; tr.style.top = ty + "px"; tr.style.width = tw + "px";
+            tr.innerHTML = '<div id="' + ID + '-trline" style="left:85px;width:' + (tw - 170) + 'px"></div><div id="' + ID + '-trfill" style="left:85px"></div>' + names.map((n, i) => '<div class="' + ID + '-node" id="' + ID + '-n' + i + '" style="left:' + i * 170 + 'px"><i></i>' + n + "</div>").join("");
+          }
+          // status text positions inside the slot; dot only on the first three
+          const dd = document.querySelector("." + ID + "-dd"); dd.style.cssText = "flex:none;width:18px;height:18px;border-radius:50%;margin-right:24px;background:var(--warn);box-shadow:0 0 0 5px color-mix(in srgb,var(--warn) 30%,transparent)";
+          $("s1").firstChild.style.cssText = "flex:none;width:18px;height:18px;border-radius:50%;margin-right:24px;background:var(--info);box-shadow:0 0 0 5px color-mix(in srgb,var(--info) 30%,transparent)";
+          $("s2").insertAdjacentHTML("afterbegin", '<span style="flex:none;width:18px;height:18px;border-radius:50%;margin-right:24px;background:var(--warn);box-shadow:0 0 0 5px color-mix(in srgb,var(--warn) 30%,transparent)"></span>');
+          $("s3").insertAdjacentHTML("afterbegin", '<span style="flex:none;width:18px;height:18px;border-radius:50%;margin-right:24px;background:var(--ok);box-shadow:0 0 0 5px color-mix(in srgb,var(--ok) 30%,transparent)"></span>');
+
+          // ---- timeline
+          const tl = gsap.timeline({ paused: true });
+          const END = 4.6;
+          const stageSel = $("slide");
+          tl.fromTo(stageSel, { y: 520, rotationX: 34, rotationY: -20, rotationZ: -6, opacity: 0, filter: "blur(16px)" }, { y: 0, rotationX: 5, rotationY: -8, rotationZ: -1.4, opacity: 1, filter: "blur(0px)", duration: 1.15, ease: "power4.out" }, 0);
+          tl.to(stageSel, { rotationY: -3, rotationX: 2, rotationZ: -0.6, duration: 3.2, ease: "sine.inOut" }, 1.15);
+          tl.fromTo($("sheen"), { x: -200 }, { x: 900, opacity: 0.9, duration: 1.0, ease: "power2.inOut" }, 0.3);
+          tl.set($("sheen"), { opacity: 0 }, 1.4);
+          // status chip: Sent, Delivered, Viewed, then Signed
+          tl.fromTo(chip, { y: 40, opacity: 0, scale: cs * 0.92, filter: "blur(10px)" }, { y: 0, opacity: 1, scale: cs, filter: "blur(0px)", duration: 0.6, ease: "expo.out" }, 0.45);
+          const sts = [0.55, 1.05, 1.5, 3.2]; const SG = 3.2;
+          [0, 1, 2, 3].forEach((i) => {
+            const e = $("s" + i), t0 = sts[i];
+            tl.fromTo(e, { opacity: 0, y: 26, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.35, ease: "power3.out" }, t0 + 0.0);
+            if (i < 3) tl.to(e, { opacity: 0, y: -26, filter: "blur(6px)", duration: 0.25, ease: "power2.in" }, sts[i + 1] - 0.02);
+            if (showTrack) { tl.to($("n" + i), { color: "#fff", duration: 0.3 }, t0); tl.to($("n" + i).firstChild, { backgroundColor: i === 3 ? B.palette.ok : B.palette.info, duration: 0.3 }, t0); }
+          });
+          if (showTrack) {
+            tl.to($("trfill"), { width: 170 * 3 - 0, duration: 0.5, ease: "power2.out" }, SG);
+            tl.fromTo(tr, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6, ease: "expo.out" }, 0.55);
+          }
+          tl.to($("chiptint"), { opacity: 1, duration: 0.4, ease: "power2.out" }, SG);
+          tl.fromTo($("ck"), { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.8)" }, SG + 0.05);
+          tl.to($("tick"), { strokeDashoffset: 0, duration: 0.3, ease: "power2.out" }, SG + 0.15);
+          // sign tag, then the signature (variable speed, 0.8 s)
+          tl.fromTo($("tag"), { opacity: 0, x: -30, scale: 0.9 }, { opacity: 1, x: 0, scale: 1, duration: 0.4, ease: "back.out(1.6)" }, 1.75);
+          tl.fromTo($("sigbox"), { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, 1.75);
+          tl.to($("sw2") || $("sw"), { strokeDashoffset: 0.55, duration: 0.3, ease: "power1.in" }, 2.4);
+          tl.to($("sw2") || $("sw"), { strokeDashoffset: 0.12, duration: 0.36, ease: "sine.inOut" }, 2.7);
+          tl.to($("sw2") || $("sw"), { strokeDashoffset: 0, duration: 0.14, ease: "power2.out" }, 3.06);
+          tl.to($("tag"), { opacity: 0, x: -20, duration: 0.25, ease: "power2.in" }, 2.4);
+          tl.to($("sigbox"), { opacity: 0, duration: 0.5, ease: "power2.out" }, 3.1);
+          tl.fromTo($("date"), { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 3.2);
+          // camera: slow drift
+          tl.fromTo($("cam"), { scale: 1.03, transformOrigin: "50% 50%" }, { scale: 1.0, duration: END, ease: "sine.out" }, 0);
+          tl.fromTo($("drift"), { y: 0 }, { y: -10, duration: END, ease: "sine.out" }, 0);
+          if (v.fadeOut) tl.fromTo($("drift"), { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(10px)", duration: 0.45, ease: "power2.in" }, END - 0.45);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

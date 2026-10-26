@@ -1,0 +1,108 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"text","type":"string","label":"Statement, *stars* mark accent words. 2 to 4 short words land best","default":"No missed leads."},
+  {"id":"size","type":"number","label":"Font size in px at 16x9 (fitted down so the whole line stays in the safe width; vertical stacks the words and scales up)","default":170,"min":80,"max":300,"step":2},
+  {"id":"dotOut","type":"boolean","label":"A dot sits before the line and lifts out to the centre as a hand-off to the next scene","default":false}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-display); }
+        #__ID__-box { position: absolute; display: flex; align-items: center; justify-content: center; }
+        #__ID__-group { display: flex; align-items: center; justify-content: center; }
+        #__ID__-words { display: flex; align-items: center; justify-content: center; transform-origin: 50% 54%; }
+        #__ID__-box.v #__ID__-group, #__ID__-box.v #__ID__-words { flex-direction: column; }
+        .__ID__-slot { position: relative; display: block; white-space: nowrap; font-weight: 700; letter-spacing: var(--track-display); line-height: 1; color: var(--ink); font-style: normal; text-transform: none; }
+        .__ID__-w { display: block; will-change: transform, filter, opacity;
+          text-shadow: 0 0.04em 0.3em rgba(0,0,0,.55), 0 0 0.45em color-mix(in srgb, var(--accent) 14%, transparent); }
+        .__ID__-g { position: absolute; left: 0; top: 0; display: block; opacity: 0; will-change: transform, opacity; }
+        .__ID__-dot { flex: none; border-radius: 50%; position: relative; opacity: 0;
+          background: radial-gradient(circle at 34% 28%, var(--paper), var(--glow-6) 52%, var(--glow-5) 100%);
+          box-shadow: inset 0 -0.08em 0.14em rgba(0,0,0,.28), 0 0.06em 0.2em rgba(0,0,0,.5), 0 0 0.7em color-mix(in srgb, var(--glow-6) 55%, transparent); }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="__ID__-hb" x="-30%" y="-10%" width="160%" height="120%"><feGaussianBlur id="__ID__-hbs" stdDeviation="0 0" /></filter></svg>
+        <div id="__ID__-box"><div id="__ID__-group"><div id="__ID__-words"></div></div></div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe;
+          const v = window.__hyperframes.getVariables();
+          const vert = H > W * 1.1;
+                    const bx = safe.left, bw = W - safe.left - safe.right, by = safe.top, bh = H - safe.top - safe.bottom;
+          const box = document.getElementById(ID + "-box");
+          if (vert) box.className = "v";
+          Object.assign(box.style, { left: bx + "px", top: by + "px", width: bw + "px", height: bh + "px" });
+          const toks = [];
+          let acc = false;
+          String(v.text).split(" ").filter(Boolean).forEach(w => {
+            if (w.startsWith("*")) acc = true;
+            toks.push({ t: w.replace(/^\*/, "").replace(/\*$/, ""), a: acc });
+            if (w.endsWith("*")) acc = false;
+          });
+          const n = toks.length, accent = B.palette.accentLift;
+          const chars = toks.reduce((s, k) => s + k.t.length, 0) + (n - 1) * 0.5;
+          const fs = Math.round(Math.min((+v.size) * (vert ? 1.5 : 1), vert ? bw / (Math.max(...toks.map(k => k.t.length)) * 0.66) : bw / (chars * 0.6 + (v.dotOut ? 1.1 : 0))));
+          const gap = fs * 0.28;
+          const words = document.getElementById(ID + "-words"), group = document.getElementById(ID + "-group");
+          words.style.gap = (vert ? fs * 0.04 : gap) + "px";
+          words.style.fontSize = fs + "px";
+          const dotPx = Math.round(fs * (vert ? 0.5 : 0.56));
+          let dot = null;
+          if (v.dotOut) {
+            dot = document.createElement("div"); dot.className = ID + "-dot";
+            Object.assign(dot.style, { width: dotPx + "px", height: dotPx + "px", fontSize: dotPx + "px", [vert ? "marginBottom" : "marginRight"]: (vert ? fs * 0.16 : gap * 1.1) + "px" });
+            group.insertBefore(dot, words);
+          }
+          const slots = toks.map((k, i) => {
+            const s = document.createElement("div"); s.className = ID + "-slot"; s.setAttribute("data-layout-allow-overlap", ""); s.setAttribute("data-layout-allow-overflow", "");
+            const mk = (c) => { const e = document.createElement("span"); e.className = c; e.textContent = k.t; e.setAttribute("data-layout-allow-overlap", ""); e.setAttribute("data-layout-allow-overflow", ""); if (k.a) e.style.color = accent; return e; };
+            const w = mk(ID + "-w"), g1 = mk(ID + "-w " + ID + "-g"), g2 = mk(ID + "-w " + ID + "-g");
+            [g1, g2].forEach(g => { g.setAttribute("aria-hidden", "true"); g.style.opacity = "0"; });
+            s.appendChild(g2); s.appendChild(g1); s.appendChild(w); words.appendChild(s);
+            return { w, g1, g2 };
+          });
+          const tl = gsap.timeline({ paused: true });
+          const FR = 1 / 30, mid = (n - 1) / 2;
+          const A = 0.42, B0 = 0.5, C = 0.30;   // fly in, start of collapse, collapse length
+          const SP = fs * 0.62;                  // extra spread per word before the gaps close
+          const hbs = document.getElementById(ID + "-hbs");
+          const hb = { s: 60 };
+          tl.set(slots.map(s => s.w), { filter: "url(#" + ID + "-hb)" }, 0);
+          tl.fromTo(hb, { s: 60 }, { s: 0, duration: A, ease: "power3.out", onUpdate: () => hbs.setAttribute("stdDeviation", hb.s.toFixed(2) + " 0") }, 0);
+          tl.set(slots.map(s => s.w), { filter: "none" }, A + 0.01);
+          slots.forEach((s, i) => {
+            const side = vert ? (i % 2 ? 1 : -1) : (i < mid ? -1 : (i > mid ? 1 : 1));
+            const off = (i - mid) * SP;                       // spread offset, along the row (or the column)
+            const sx = vert ? 0 : off, sy = vert ? off : 0;
+            [[s.w, 0, 1], [s.g1, 2 * FR, 0.22], [s.g2, 4 * FR, 0.1]].forEach(([el, lag, op]) => {
+              tl.fromTo(el, { x: side * W * 0.45 + sx, y: sy }, { x: sx, y: sy, duration: A, ease: "power2.out" }, lag);
+              tl.to(el, { x: 0, y: 0, duration: C, ease: "power4.out" }, B0 + lag);
+              if (op < 1) {
+                tl.set(el, { opacity: op }, lag + 0.02);
+                tl.to(el, { opacity: 0, duration: 0.18, ease: "power1.in" }, B0 + C + lag - 0.06);
+              }
+            });
+            tl.fromTo(s.w, { opacity: 0 }, { opacity: 1, duration: A, ease: "power2.in" }, 0);   // contrast ramps in while the words are fast (flashcheck)
+          });
+          // creep shrink, then accelerating exit
+          const tCreep = B0 + C - 0.02, tExit = 1.55;
+          tl.fromTo(words, { scale: 1 }, { scale: 0.955, duration: tExit - tCreep, ease: "power1.out" }, tCreep);
+          tl.to(words, { scale: 0.3, opacity: 0, filter: "blur(8px)", duration: 0.34, ease: "power3.in" }, tExit);
+          if (dot) {
+            const abs = (el) => { let x = 0, y = 0; for (let e = el; e && e !== root; e = e.offsetParent) { x += e.offsetLeft; y += e.offsetTop; } return { x: x + el.offsetWidth / 2, y: y + el.offsetHeight / 2 }; };
+            const tx = bx + bw / 2, ty = by + bh / 2;
+            tl.fromTo(dot, { opacity: 0, scale: 0 }, { opacity: 1, scale: 1, duration: 0.32, ease: "back.out(1.6)" }, B0 + 0.12);
+            tl.to(dot, { scale: 120 / dotPx, x: () => tx - abs(dot).x, y: () => ty - abs(dot).y, duration: 0.7, ease: "power3.inOut" }, tExit - 0.04);
+          }
+          tl.to({}, { duration: 0.01 }, tExit + 1.05);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

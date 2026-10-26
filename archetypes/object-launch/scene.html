@@ -1,0 +1,150 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"object","type":"string","label":"What launches: tile (brand app tile in glass) or phone (photoreal phone with a real capture)","default":"tile"},
+  {"id":"ring","type":"boolean","label":"Soft impact ring under the object when it lands","default":true},
+  {"id":"screen","type":"string","label":"BRAND.ui key on the phone when object is phone","default":"home"},
+  {"id":"fadeOut","type":"boolean","label":"Directional blur exit at the end","default":true}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-display); }
+        #__ID__-drift, #__ID__-cam { position: absolute; inset: 0; }
+        .__ID__-zero { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+        #__ID__-btn { position: absolute; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+          background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.05)), color-mix(in srgb, var(--accent-deep) 58%, transparent);
+          backdrop-filter: blur(22px) saturate(1.5) brightness(1.15);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.6), inset 0 -10px 24px rgba(0,0,0,.18), 0 30px 70px rgba(0,0,0,.4), 0 0 60px color-mix(in srgb, var(--accent) 22%, transparent); }
+        #__ID__-btn .__ID__-edge, .__ID__-glass .__ID__-edge { position: absolute; inset: 0; border-radius: inherit; padding: 2.5px; pointer-events: none;
+          background: linear-gradient(155deg, rgba(255,255,255,.9), rgba(255,255,255,.18) 35%, rgba(255,255,255,.12) 65%, rgba(255,255,255,.55));
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        #__ID__-ripple { position: absolute; border-radius: 50%; border: 3px solid color-mix(in srgb, var(--accent-lift) 80%, #fff); opacity: 0; }
+        #__ID__-ptr { position: absolute; left: 0; top: 0; width: 56px; height: 56px; filter: drop-shadow(0 10px 14px rgba(0,0,0,.45)); }
+        .__ID__-glass { position: absolute; border-radius: 22%; display: flex; align-items: center; justify-content: center;
+          background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.03)), color-mix(in srgb, var(--accent-deep) 50%, transparent);
+          backdrop-filter: blur(22px) saturate(1.5) brightness(1.15);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.6), inset 0 -14px 30px rgba(0,0,0,.2), 0 40px 90px rgba(0,0,0,.5), 0 0 90px color-mix(in srgb, var(--accent) 24%, transparent); }
+        .__ID__-glass img.__ID__-art { display: block; width: 78%; height: 78%; border-radius: 20%; box-shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.3); }
+        .__ID__-glass .__ID__-sheen { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(135deg, rgba(255,255,255,.28), rgba(255,255,255,.06) 28%, rgba(255,255,255,0) 50%); }
+        #__ID__-impact { position: absolute; border-radius: 50%; opacity: 0; border: 3px solid color-mix(in srgb, var(--accent-lift) 75%, #fff); filter: blur(2.5px);
+          box-shadow: 0 0 40px color-mix(in srgb, var(--accent) 55%, transparent), inset 0 0 40px color-mix(in srgb, var(--accent) 30%, transparent); }
+        .__ID__-key { position: absolute; left: 4.6%; top: 2.1%; width: 90.8%; height: 95.8%; border-radius: 125px; overflow: hidden; pointer-events: none;
+          background: linear-gradient(135deg, rgba(255,255,255,.2) 0%, rgba(255,255,255,.07) 20%, rgba(255,255,255,0) 44%); }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+          <filter id="__ID__-mbf" x="-50%" y="-80%" width="200%" height="260%"><feGaussianBlur id="__ID__-fe" stdDeviation="0 0" /></filter>
+        </defs></svg>
+        <div id="__ID__-drift"><div id="__ID__-cam">
+          <div id="__ID__-impact"></div>
+          <div id="__ID__-ripple"></div>
+          <div id="__ID__-btn"><div class="__ID__-edge"></div></div>
+          <div class="__ID__-zero" id="__ID__-obj"></div>
+          <svg id="__ID__-ptr" viewBox="0 0 56 56"><path d="M8 4 L8 40 L18 31 L25 47 L32 44 L25 29 L39 29 Z" fill="rgba(255,255,255,.92)" stroke="rgba(20,10,8,.85)" stroke-width="2.5" stroke-linejoin="round"/></svg>
+        </div></div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe, RU = HF.realui;
+          const v = window.__hyperframes.getVariables();
+          const isPhone = String(v.object) === "phone";
+          const cx = (safe.left + (W - safe.right)) / 2, cy = (safe.top + (H - safe.bottom)) / 2;
+          const vert = H > W * 1.4;
+
+          /* sizes (design px). REST is the size the object holds at (85 percent of its design size). */
+          const G = HF.pick({
+            "16x9": { btn: 150, tile: 480, phoneH: 820, restY: 470, btnY: 905 },
+            "9x16": { btn: 190, tile: 620, phoneH: 800, restY: 690, btnY: 1160 },
+            "1x1":  { btn: 150, tile: 460, phoneH: 640, restY: 440, btnY: 840 },
+            "4x5":  { btn: 170, tile: 520, phoneH: 760, restY: 560, btnY: 1060 },
+            def:    { btn: 150, tile: 480, phoneH: 820, restY: 470, btnY: 905 }
+          });
+          const REST = 0.85, HOLD = 0.875;
+          const objH = isPhone ? G.phoneH : G.tile;
+          const base = objH / REST;                     /* design size so that scale 0.85 gives objH */
+          const restY = G.restY;
+
+          /* send button (a real send glyph from the app icon set, in glass) */
+          const btn = document.getElementById(ID + "-btn");
+          Object.assign(btn.style, { width: G.btn + "px", height: G.btn + "px", left: (cx - G.btn / 2) + "px", top: (G.btnY - G.btn / 2) + "px" });
+          const ico = document.createElement("div"); ico.innerHTML = RU.icons.send("currentColor", Math.round(G.btn * 0.42)); ico.style.cssText = "display:flex;color:var(--paper);transform:translate(-2px,1px)"; btn.appendChild(ico);
+          const rip = document.getElementById(ID + "-ripple");
+          Object.assign(rip.style, { width: G.btn + "px", height: G.btn + "px", left: (cx - G.btn / 2) + "px", top: (G.btnY - G.btn / 2) + "px" });
+
+          /* the object, drawn at design size `base`, centred on a zero-size wrapper */
+          const obj = document.getElementById(ID + "-obj");
+          let ph = null;
+          if (isPhone) {
+            const shot = document.createElement("img"); shot.src = B.ui[v.screen] || B.ui.home; shot.alt = "";
+            Object.assign(shot.style, { width: "393px", height: "852px", display: "block", objectFit: "cover" });
+            ph = HF.phone(obj, { photo: "front", content: shot, x: 0, y: 0, scale: base / 1868, glow: "color-mix(in srgb, var(--accent) 26%, transparent)", glowOpacity: 0.8, shadow: "float", reflect: 1.1 });
+            const key = document.createElement("div"); key.className = ID + "-key"; ph.body.appendChild(key);
+            gsap.set(ph.el, { rotationY: -10, rotationX: 0 });
+          } else {
+            const g = document.createElement("div"); g.className = ID + "-glass";
+            Object.assign(g.style, { width: base + "px", height: base + "px", left: (-base / 2) + "px", top: (-base / 2) + "px" });
+            g.innerHTML = '<img class="' + ID + '-art" src="' + B.logo.tile + '" alt=""><div class="' + ID + '-sheen"></div><div class="' + ID + '-edge"></div>';
+            obj.appendChild(g);
+          }
+          gsap.set(obj, { x: cx, y: G.btnY, scale: 0.12, opacity: 0, transformOrigin: "0px 0px" });
+
+          /* soft impact ring: a flat ellipse on the ground under the object, local and small */
+          const imp = document.getElementById(ID + "-impact");
+          const ringW = objH * (isPhone ? 0.95 : 1.5), ringH = ringW * 0.3;
+          const baseY = restY + objH / 2 + (isPhone ? 14 : 26);
+          Object.assign(imp.style, { width: ringW + "px", height: ringH + "px", left: (cx - ringW / 2) + "px", top: (baseY - ringH / 2) + "px" });
+
+          /* pointer */
+          const ptr = document.getElementById(ID + "-ptr");
+          const px0 = cx + 430, py0 = G.btnY + 330, px1 = cx + 6, py1 = G.btnY - 8;
+          gsap.set(ptr, { x: px0, y: py0, opacity: 0, scale: 1, transformOrigin: "8px 4px" });
+
+          const tl = gsap.timeline({ paused: true });
+          const TAP = 1.17, LAUNCH = 1.2, LAND = LAUNCH + 0.4;
+          /* button in */
+          tl.fromTo(btn, { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.45, ease: "back.out(1.6)" }, 0.05);
+          /* pointer: fast arrival, long decel, a rest, then the press */
+          tl.set(ptr, { opacity: 1 }, 0.55);
+          tl.fromTo(ptr, { x: px0, y: py0 }, { x: px1, y: py1, duration: 0.5, ease: "power3.out" }, 0.55);
+          tl.to(ptr, { scale: 0.9, duration: 0.07, ease: "power2.in" }, TAP);
+          tl.to(ptr, { scale: 1, duration: 0.12, ease: "power2.out" }, TAP + 0.07);
+          tl.to(btn, { scale: 0.93, duration: 0.07, ease: "power2.in" }, TAP);
+          tl.to(btn, { scale: 1, duration: 0.3, ease: "back.out(2)" }, TAP + 0.07);
+          tl.fromTo(rip, { scale: 1, opacity: 0.7 }, { scale: 2.0, opacity: 0, duration: 0.45, ease: "power2.out" }, TAP);
+          tl.to(ptr, { opacity: 0, x: px1 + 70, y: py1 + 50, duration: 0.25, ease: "power2.in" }, LAUNCH + 0.15);
+          /* launch: scale 12 -> 85 percent in 0.4 s expo.out with a vertical motion blur, rising out of the button */
+          tl.set(obj, { opacity: 1 }, LAUNCH);
+          tl.set(obj, { filter: "url(#" + ID + "-mbf)" }, LAUNCH - 0.001);
+          tl.fromTo("#" + ID + "-fe", { attr: { stdDeviation: "0 48" } }, { attr: { stdDeviation: "0 0" }, duration: 0.42, ease: "power3.out", immediateRender: false }, LAUNCH);
+          tl.fromTo(obj, { x: cx, y: G.btnY, scale: 0.12 }, { x: cx, y: restY, scale: REST, duration: 0.4, ease: "expo.out", immediateRender: false }, LAUNCH);
+          if (isPhone) tl.fromTo(ph.el, { rotationY: -22, rotation: -6 }, { rotationY: -8, rotation: 0, duration: 0.9, ease: "power4.out", immediateRender: false }, LAUNCH);
+          tl.set(obj, { filter: "none" }, LAUNCH + 0.46);
+          /* the button is spent */
+          tl.to(btn, { opacity: 0, y: 16, duration: 0.35, ease: "power2.in" }, LAUNCH + 0.1);
+          /* impact ring on landing */
+          if (v.ring) {
+            tl.fromTo(imp, { scale: 0.35, opacity: 0.7 }, { scale: 1.5, opacity: 0, duration: 0.9, ease: "expo.out", immediateRender: false }, LAND - 0.1);
+          }
+          /* breathing hold */
+          const HOLD0 = LAND + 0.1, EXIT = 3.1;
+          tl.to(obj, { scale: HOLD, y: restY - 8, duration: (EXIT - HOLD0) / 2, ease: "sine.inOut" }, HOLD0);
+          tl.to(obj, { scale: REST, y: restY, duration: (EXIT - HOLD0) / 2, ease: "sine.inOut" }, HOLD0 + (EXIT - HOLD0) / 2);
+          if (isPhone) tl.to(ph.el, { rotationY: -12, duration: EXIT - HOLD0, ease: "sine.inOut", immediateRender: false }, HOLD0);
+          /* whole scene drifts slowly */
+          tl.fromTo("#" + ID + "-drift", { scale: 1.0 }, { scale: 1.04, duration: EXIT + 0.5, ease: "sine.out" }, 0);
+          /* exit: directional blur upward, scale up, gone */
+          if (v.fadeOut) {
+            tl.set(obj, { filter: "url(#" + ID + "-mbf)" }, EXIT - 0.001);
+            tl.fromTo("#" + ID + "-fe", { attr: { stdDeviation: "0 0" } }, { attr: { stdDeviation: "0 64" }, duration: 0.4, ease: "power2.in", immediateRender: false }, EXIT);
+            tl.to(obj, { y: restY - 190, scale: 1.12, opacity: 0, duration: 0.4, ease: "power2.in", immediateRender: false }, EXIT);
+          }
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

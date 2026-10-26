@@ -1,0 +1,207 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"count","type":"number","label":"Home photo cards in the burst (vertical and square formats show about two thirds)","default":12,"min":4,"max":17,"step":1},
+  {"id":"chips","type":"string","label":"Text chips, | separated. Empty = the listing facts from the brand cast.","default":""},
+  {"id":"notifs","type":"number","label":"Real lead notification cards mixed into the burst (0 turns them off)","default":3,"min":0,"max":4,"step":1},
+  {"id":"fadeOut","type":"boolean","label":"Blur out at the end (off = hand off the hub with its ring)","default":true}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-display); }
+        #__ID__-drift, #__ID__-cam { position: absolute; inset: 0; }
+        .__ID__-item { position: absolute; left: 0; top: 0; opacity: 0; will-change: transform, filter; }
+        .__ID__-photo { border-radius: 18px; overflow: hidden; background: var(--bg2);
+          box-shadow: 0 2px 5px rgba(0,0,0,.4), 10px 26px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.1); }
+        .__ID__-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+        .__ID__-duo { position: absolute; inset: 0; }
+        .__ID__-duo img { filter: url(#__ID__-duotone) contrast(1.05); }
+        .__ID__-gloss { position: absolute; inset: 0; pointer-events: none; border-radius: 18px;
+          background: linear-gradient(145deg, rgba(255,255,255,.22), rgba(255,255,255,0) 38%), linear-gradient(0deg, rgba(0,0,0,.28), rgba(0,0,0,0) 35%);
+          box-shadow: inset 0 1.5px 0 rgba(255,255,255,.35); }
+        .__ID__-item .ru-notif { box-shadow: 0 2px 4px rgba(0,0,0,.35), 10px 24px 50px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.14); }
+        .__ID__-chip { position: absolute; left: 0; top: 0; height: 68px; border-radius: 34px; display: flex; align-items: center; padding: 0 32px; white-space: nowrap; color: var(--ink);
+          font-size: 29px; font-weight: 600; letter-spacing: var(--track-display); opacity: 0;
+          background: linear-gradient(180deg, rgba(255,255,255,.2), rgba(255,255,255,.05)), color-mix(in srgb, var(--accent-deep) 58%, transparent);
+          backdrop-filter: blur(22px) saturate(1.5) brightness(1.15); -webkit-backdrop-filter: blur(22px) saturate(1.5) brightness(1.15);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.6), inset 0 -8px 18px rgba(0,0,0,.18), 8px 22px 46px rgba(0,0,0,.4); }
+        .__ID__-chip::after { content: ""; position: absolute; inset: 0; border-radius: 34px; padding: 2px; pointer-events: none;
+          background: linear-gradient(155deg, rgba(255,255,255,.9), rgba(255,255,255,.16) 35%, rgba(255,255,255,.1) 65%, rgba(255,255,255,.5));
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        .__ID__-ripple { position: absolute; left: 0; top: 0; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--ink) 38%, transparent); opacity: 0; }
+        #__ID__-hub { position: absolute; left: 0; top: 0; z-index: 60; opacity: 0; will-change: transform; }
+        .__ID__-plate { position: absolute; inset: 0; border-radius: 30%; overflow: hidden;
+          background: linear-gradient(150deg, rgba(255,255,255,.2), rgba(255,255,255,.04) 55%, rgba(255,255,255,.08)), color-mix(in srgb, var(--brand-deep) 80%, #000);
+          backdrop-filter: blur(24px) saturate(1.3); -webkit-backdrop-filter: blur(24px) saturate(1.3);
+          box-shadow: inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -14px 30px rgba(0,0,0,.4), 8px 30px 70px rgba(0,0,0,.6); }
+        .__ID__-edge { position: absolute; inset: 0; border-radius: 30%; padding: 2.5px; pointer-events: none;
+          background: linear-gradient(155deg, rgba(255,255,255,.8), rgba(255,255,255,.12) 35%, rgba(255,255,255,.08) 65%, rgba(255,255,255,.4));
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        .__ID__-tile { position: absolute; left: 14%; top: 14%; width: 72%; height: 72%; border-radius: 22.5%; display: block; box-shadow: 0 10px 22px rgba(0,0,0,.5), 0 2px 4px rgba(0,0,0,.4); }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <svg width="0" height="0" style="position:absolute"><defs>
+          <filter id="__ID__-duotone" color-interpolation-filters="sRGB">
+            <feColorMatrix type="matrix" values="0.3 0.59 0.11 0 0  0.3 0.59 0.11 0 0  0.3 0.59 0.11 0 0  0 0 0 1 0"/>
+            <feComponentTransfer><feFuncR id="__ID__-fr" type="table" tableValues="0 1"/><feFuncG id="__ID__-fg" type="table" tableValues="0 1"/><feFuncB id="__ID__-fb" type="table" tableValues="0 1"/></feComponentTransfer>
+          </filter>
+        </defs></svg>
+        <div id="__ID__-drift"><div id="__ID__-cam">
+          <div id="__ID__-hub"><div class="__ID__-plate"></div><div class="__ID__-edge"></div><img class="__ID__-tile" alt=""></div>
+        </div></div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe, RU = window.HF.realui;
+          const v = window.__hyperframes.getVariables();
+          const land = W > H, vert = H / W > 1.5;
+          const cam = document.getElementById(ID + "-cam");
+          const rnd = HF.rng(21);
+          const ease = n => gsap.parseEase(n);
+          const E5o = ease("expo.out"), E2o = ease("power2.out"), E2i = ease("power2.in"), EB = ease("back.out(1)"), EH = ease("back.out(1.4)");
+          const R = (x, a, b) => Math.min(1, Math.max(0, (x - a) / (b - a)));
+          const lerp = (a, b, k) => a + (b - a) * k;
+          const T_BURST = 0.5, T_IMP = 3.4, T_END = 5.2;
+
+          // duotone from the brand ramp (shadows, mid, light)
+          const ramp = B.palette.glowRamp, hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+          const cs = [ramp[2], ramp[5], ramp[7]].map(hex);
+          [["fr", 0], ["fg", 1], ["fb", 2]].forEach(([id, c]) => document.getElementById(ID + "-" + id).setAttribute("tableValues", cs.map(x => x[c].toFixed(3)).join(" ")));
+
+          // layout metrics ---------------------------------------------------
+          const hubD = land ? 210 : vert ? 176 : 160;
+          const sq = !land && !vert;
+          // the slow scene drift (scale 1.04, y -12) runs to the end, so non-landscape layouts are placed in pre-drift coordinates to land inside the safe box
+          const DS = 1.04, DY = 12, ix = x => W / 2 + (x - W / 2) / DS, iy = y => H / 2 + (y + DY - H / 2) / DS;
+          const hubC = land ? { x: W / 2, y: H / 2 } : { x: ix((safe.left + W - safe.right) / 2), y: iy((safe.top + H - safe.bottom) / 2) };
+          const bx0 = land ? 80 : ix(safe.left) + 14, bx1 = land ? W - 80 : ix(W - safe.right) - 14, by0 = land ? 60 : iy(safe.top) + 14, by1 = land ? H - 60 : iy(H - safe.bottom) - 14;
+          const hub = document.getElementById(ID + "-hub");
+          hub.style.width = hub.style.height = hubD + "px";
+          hub.style.left = (hubC.x - hubD / 2) + "px"; hub.style.top = (hubC.y - hubD / 2) + "px";
+          hub.querySelector("img").src = B.logo.tile;
+          const mkRipple = () => { const r = document.createElement("div"); r.className = ID + "-ripple"; r.style.width = r.style.height = hubD + "px"; r.style.left = (hubC.x - hubD / 2) + "px"; r.style.top = (hubC.y - hubD / 2) + "px"; cam.insertBefore(r, hub); return r; };
+          const ripples = [mkRipple(), mkRipple()];
+
+          // content ----------------------------------------------------------
+          const files = ["home-1", "home-2", "home-3", "home-4", "home-5", "u01", "u02", "u03", "u04", "u05", "u06", "u07", "u08", "u09", "u10", "u11", "u12"];
+          const order = [0, 5, 1, 6, 2, 7, 3, 8, 4, 9, 10, 11, 12, 13, 14, 15, 16];
+          const nPhoto = Math.max(4, Math.min(17, Math.round((+v.count || 12) * (land ? 1 : 0.65))));
+          const L = B.cast.listing, leads = B.cast.leads;
+          const chipTxt = String(v.chips || "").trim() ? String(v.chips).split("|").map(s => s.trim()) : [L.address, L.rent, L.beds + ", " + L.baths, L.pets, L.parking];
+          const nChip = land ? chipTxt.length : Math.min(chipTxt.length, 3);
+          const msgs = ["Is " + L.address + " still available?", "Can I come by on Saturday?", "What does it cost?", "Is Sunday also open?"];
+          const nNotif = Math.max(0, Math.min(4, +v.notifs)) * (land ? 1 : 0.67) | 0 || (+v.notifs > 0 && !land ? 2 : 0);
+          const items = [];
+          const photoW = land ? 250 : vert ? 212 : 175, aspects = [1.3, 0.86, 1.1, 1.38, 0.92];
+          const DEPTH = [1, 2, 0, 1, 2, 1, 0, 2, 1, 0];
+          const SC = [0.74, 1, 1.24], BL = [3.2, 0.8, 0];
+          for (let i = 0; i < nPhoto; i++) {
+            const d = DEPTH[i % DEPTH.length], w = photoW, h = Math.round(photoW * aspects[i % aspects.length]);
+            const el = document.createElement("div"); el.className = ID + "-item " + ID + "-photo"; el.style.width = w + "px"; el.style.height = h + "px";
+            const src = B.photos.dir + "/" + files[order[i]] + ".jpg";
+            el.innerHTML = '<img alt="" src="' + src + '"><div class="' + ID + '-duo"><img alt="" src="' + src + '"></div><div class="' + ID + '-gloss"></div>';
+            el.querySelectorAll("img").forEach(im => { im.onerror = () => { im.onerror = null; if (B.photos.hero) im.src = B.photos.hero; }; });
+            items.push({ kind: "photo", el, w, h, depth: d, s: SC[d], duo: el.querySelector("." + ID + "-duo") });
+          }
+          for (let i = 0; i < nNotif; i++) {
+            const ld = leads[i % leads.length];
+            const el = RU.notif({ name: ld.name, face: ld.face, channel: ld.channel, text: msgs[i % msgs.length], when: "now" });
+            el.classList.add(ID + "-item");
+            items.push({ kind: "notif", el, w: 366, h: 86, depth: 2, s: land ? 1.12 : 1.0 });
+          }
+          for (let i = 0; i < nChip; i++) {
+            const el = document.createElement("div"); el.className = ID + "-chip " + ID + "-item"; el.textContent = chipTxt[i];
+            items.push({ kind: "chip", el, w: 0, h: 68, depth: 1, s: 1 });
+          }
+          items.forEach(c => { cam.insertBefore(c.el, hub); c.el.style.zIndex = c.kind === "chip" ? 50 : c.kind === "notif" ? 45 : 10 + c.depth * 10; if (c.kind === "chip") c.w = c.el.offsetWidth; if (c.kind === "notif") c.h = c.el.offsetHeight; });
+
+          // polar targets: interleave kinds around the ring, relax overlaps ----
+          const keyed = [];
+          ["photo", "notif", "chip"].forEach(k => { const arr = items.filter(c => c.kind === k); arr.forEach((c, j) => keyed.push({ c, key: (j + 0.5 + (k === "notif" ? 0.25 : k === "chip" ? 0.6 : 0)) / arr.length })); });
+          keyed.sort((a, b) => a.key - b.key);
+          const a0 = rnd() * 6.283;
+          const rxAll = (bx1 - bx0) / 2, ryAll = (by1 - by0) / 2;
+          keyed.forEach(({ c }, k) => {
+            c.ang = a0 + (k / keyed.length) * 6.283 + (rnd() - 0.5) * 0.18;
+            const rf = (k % 2 ? 0.98 : 0.64) * (0.94 + rnd() * 0.12);
+            const hw = c.w * c.s / 2, hh = c.h * c.s / 2;
+            c.hw = hw; c.hh = hh;
+            c.x = hubC.x + Math.cos(c.ang) * (rxAll - hw) * rf; c.y = hubC.y + Math.sin(c.ang) * (ryAll - hh) * rf;
+            c.rot0 = (rnd() - 0.5) * 8; c.rotIn = c.rot0 + (rnd() - 0.5) * 50;
+            c.ph = rnd() * 6.283; c.fl = 4 + rnd() * 4;
+          });
+          for (let it = 0; it < 90; it++) {
+            for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
+              const a = items[i], b = items[j], tol = a.depth === b.depth ? 1 : 0.8;
+              const dx = b.x - a.x, dy = b.y - a.y, ox = (a.hw + b.hw) * tol - Math.abs(dx), oy = (a.hh + b.hh) * tol - Math.abs(dy);
+              if (ox > 0 && oy > 0) {
+                const wa = a.depth >= b.depth ? 0.3 : 0.7, wb = 1 - wa;
+                if (ox < oy) { const s = dx >= 0 ? 1 : -1; a.x -= s * ox * wa; b.x += s * ox * wb; } else { const s = dy >= 0 ? 1 : -1; a.y -= s * oy * wa; b.y += s * oy * wb; }
+              }
+            }
+            items.forEach(c => {
+              const ex = hubD / 2 + 26 + c.hw, ey = hubD / 2 + 26 + c.hh, dx = c.x - hubC.x, dy = c.y - hubC.y;
+              if (Math.abs(dx) < ex && Math.abs(dy) < ey) { if (ex - Math.abs(dx) < ey - Math.abs(dy)) c.x = hubC.x + Math.sign(dx || 1) * ex; else c.y = hubC.y + Math.sign(dy || 1) * ey; }
+              c.x = Math.max(bx0 + c.hw, Math.min(bx1 - c.hw, c.x)); c.y = Math.max(by0 + c.hh, Math.min(by1 - c.hh, c.y));
+            });
+          }
+          // stagger order (seeded shuffle) and ring slots for photos
+          const shuf = items.map((_, i) => i); for (let i = shuf.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [shuf[i], shuf[j]] = [shuf[j], shuf[i]]; }
+          items.forEach((c, i) => { c.t0 = T_BURST + shuf[i] * 0.04; });
+          const photos = items.filter(c => c.kind === "photo");
+          const ringR = hubD / 2 + (land ? 175 : vert ? 160 : 125), ringW = Math.min(land ? 150 : vert ? 180 : 150, 2 * Math.PI * ringR / photos.length * 0.92);
+          photos.slice().sort((a, b) => Math.atan2(a.y - hubC.y, a.x - hubC.x) - Math.atan2(b.y - hubC.y, b.x - hubC.x)).forEach((c, k) => { c.ringA = -Math.PI / 2 + (k / photos.length) * 6.283; c.ringS = ringW / c.w; });
+
+          const set = (c, x, y, rot, s, blur, op) => {
+            c.el.style.opacity = op.toFixed(3);
+            c.el.style.transform = "translate(" + x.toFixed(2) + "px," + y.toFixed(2) + "px) translate(-50%,-50%) rotate(" + rot.toFixed(3) + "deg) scale(" + Math.max(0.0001, s).toFixed(4) + ")";
+            c.el.style.filter = blur > 0.05 ? "blur(" + blur.toFixed(2) + "px)" : "none";
+          };
+          const state = { T: 0 };
+          const render = () => {
+            const T = state.T;
+            const hp = EH(R(T, 0, 0.55)) + (T > T_IMP + 0.55 ? 0 : 0);
+            const thump = T > T_IMP + 0.7 ? 0.045 * Math.sin(Math.PI * R(T, T_IMP + 0.7, T_IMP + 1.15)) : 0;
+            hub.style.opacity = R(T, 0, 0.2);
+            hub.style.transform = "scale(" + Math.max(0.0001, hp + thump).toFixed(4) + ")";
+            ripples.forEach((r, k) => {
+              const p = E2o(R(T, T_BURST - 0.05 + k * 0.17, T_BURST + 1.05 + k * 0.17));
+              r.style.opacity = p > 0 && p < 1 ? (0.5 * (1 - p)).toFixed(3) : 0;
+              r.style.transform = "scale(" + lerp(1, land ? 4.6 : 3.4, p).toFixed(3) + ")";
+            });
+            items.forEach(c => {
+              const f = E5o(R(T, c.t0, c.t0 + 0.85)), sIn = EB(R(T, c.t0, c.t0 + 0.8));
+              const fl = R(T, c.t0 + 0.9, c.t0 + 1.5), fa = fl * (c.kind === "photo" ? 7 : 4);
+              let x = lerp(hubC.x, c.x, f) + Math.sin(T * 0.9 + c.ph) * fa, y = lerp(hubC.y, c.y, f) + Math.cos(T * 0.75 + c.ph * 1.3) * fa;
+              let s = lerp(0.14, 1, sIn) * c.s, rot = lerp(c.rotIn, c.rot0, E2o(R(T, c.t0, c.t0 + 1.1)));
+              let blur = (c.kind === "photo" ? BL[c.depth] : c.kind === "chip" ? 0.4 : 0) + 9 * Math.pow(1 - f, 2), op = R(T, c.t0, c.t0 + 0.14);
+              if (c.kind === "photo") c.duo.style.opacity = (1 - E2o(R(T, c.t0 + 0.12, c.t0 + 1.0))).toFixed(3);
+              const im = E2i(R(T, T_IMP, T_IMP + 0.7));
+              if (im > 0) {
+                if (c.kind === "photo") {
+                  const sp = (T - T_IMP - 0.5) * 0.2;
+                  const rx = hubC.x + Math.cos(c.ringA + Math.max(0, sp)) * ringR, ry = hubC.y + Math.sin(c.ringA + Math.max(0, sp)) * ringR;
+                  x = lerp(x, rx, im); y = lerp(y, ry, im); s = lerp(s, c.ringS, im); rot = lerp(rot, 0, im); blur = lerp(blur * (1 - im), 7, Math.sin(Math.PI * im)); op *= 1 - 0.5 * Math.sin(Math.PI * im);
+                } else {
+                  x = lerp(x, hubC.x, im); y = lerp(y, hubC.y, im); s *= 1 - 0.8 * im; op *= 1 - R(im, 0.15, 0.95); blur += 6 * im;
+                }
+              }
+              set(c, x, y, rot, s, blur, op);
+            });
+          };
+
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo(state, { T: 0 }, { T: T_END, duration: T_END, ease: "none", onUpdate: render }, 0);
+          tl.fromTo("#" + ID + "-drift", { scale: 1.0, y: 0 }, { scale: 1.04, y: -12, duration: T_END, ease: "sine.out" }, 0);
+          if (v.fadeOut) tl.fromTo("#" + ID + "-drift", { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(10px)", duration: 0.5, ease: "power2.in" }, T_END - 0.5);
+          render();
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

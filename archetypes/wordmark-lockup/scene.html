@@ -1,0 +1,191 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"word","type":"string","label":"Wordmark text. Empty = BRAND.logo.wordmarkText","default":""},
+  {"id":"tagline","type":"string","label":"Tagline typed under the lockup. Empty = BRAND.endline","default":""},
+  {"id":"endTheme","type":"string","label":"dark or paper. paper wipes the lockup onto a paper plate over 0.5 s at the end (never a hard cut)","default":"dark"},
+  {"id":"flood","type":"boolean","label":"With endTheme paper: true = the paper covers the full frame, false = a paper plate under half the frame","default":false}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-display); }
+        .__ID__-layer { position: absolute; inset: 0; }
+        #__ID__-pool { position: absolute; inset: 0; opacity: 0;
+          background: radial-gradient(52% 46% at 50% 52%, color-mix(in srgb, var(--glow-3) 80%, transparent), transparent 72%); }
+        .__ID__-bw { position: absolute; inset: 0; }
+        .__ID__-box { position: absolute; display: flex; align-items: center; justify-content: center; }
+        .__ID__-lock { position: relative; }
+        .__ID__-row { display: flex; align-items: center; justify-content: center; perspective: 1700px; perspective-origin: 50% 50%; }
+        .__ID__-col { flex-direction: column; }
+        .__ID__-tile { position: relative; flex: none; border-radius: 22.5%; overflow: hidden; opacity: 0;
+          filter: drop-shadow(0 0.5em 0.9em rgba(0,0,0,.5)) drop-shadow(0 0.08em 0.12em rgba(0,0,0,.4)); }
+        .__ID__-tile img { display: block; width: 100%; height: 100%; }
+        .__ID__-tile::after { content: ""; position: absolute; inset: 0; border-radius: 22.5%; pointer-events: none;
+          background: linear-gradient(150deg, rgba(255,255,255,.34), rgba(255,255,255,.06) 38%, rgba(255,255,255,0) 60%);
+          box-shadow: inset 0 0.03em 0 rgba(255,255,255,.5), inset 0 -0.05em 0.08em rgba(0,0,0,.25); }
+        .__ID__-cell { position: relative; flex: none; }
+        .__ID__-word { position: relative; display: block; font-family: var(--logo-word-font, var(--font-display)); font-weight: var(--logo-word-weight, 700); letter-spacing: var(--logo-word-tracking, -0.035em); line-height: 1; white-space: nowrap; transform-style: preserve-3d;
+          font-style: normal; text-transform: none; will-change: transform; }
+        .__ID__-face { display: block; position: relative; color: var(--logo-word-dark, var(--paper)); }
+        .__ID__-dark .__ID__-face { background: linear-gradient(168deg, #fff 0%, var(--paper) 38%, var(--glow-7) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .__ID__-pap .__ID__-face { color: var(--on-paper); }
+        .__ID__-ext { position: absolute; left: 0; top: 0; display: block; white-space: nowrap; }
+        .__ID__-ghost { position: absolute; left: 0; top: 0; display: block; font-family: var(--logo-word-font, var(--font-display)); font-weight: var(--logo-word-weight, 700); letter-spacing: var(--logo-word-tracking, -0.035em); line-height: 1; white-space: nowrap; color: var(--paper); opacity: 0; }
+        .__ID__-tag { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); text-align: center; font-weight: 500; letter-spacing: var(--track-display); line-height: 1.22; }
+        .__ID__-tag .wd { display: inline-block; white-space: nowrap; }
+        .__ID__-tag .ch { position: relative; display: inline-block; opacity: 0; }
+        .__ID__-tag .cr { position: absolute; left: 100%; top: 8%; width: 0.07em; height: 84%; margin-left: 0.03em; border-radius: 0.04em; opacity: 0; }
+        .__ID__-dark .__ID__-tag { color: var(--ink); }
+        .__ID__-dark .cr { background: var(--accent-lift); }
+        .__ID__-pap .__ID__-tag { color: var(--on-paper); }
+        .__ID__-pap .cr { background: var(--brand); }
+        #__ID__-pap { position: absolute; inset: 0; -webkit-mask-image: linear-gradient(90deg, #000 var(--m1, -30%), transparent var(--m2, -10%)); mask-image: linear-gradient(90deg, #000 var(--m1, -30%), transparent var(--m2, -10%)); }
+        #__ID__-plate { position: absolute; background: var(--paper); border-radius: 36px;
+          background: linear-gradient(160deg, color-mix(in srgb, var(--paper) 88%, #fff), var(--paper) 55%, color-mix(in srgb, var(--paper) 92%, #000));
+          box-shadow: 0 40px 100px rgba(0,0,0,.55), 0 6px 0 rgba(255,255,255,.35) inset; }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <div id="__ID__-pool"></div>
+        <div class="__ID__-layer" id="__ID__-dark"></div>
+        <div class="__ID__-layer" id="__ID__-pap" style="display:none"></div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe, P = B.palette;
+          const v = window.__hyperframes.getVariables();
+          const vert = H > W * 1.1;
+          const WORD = String(v.word || B.logo.wordmarkText), TAG = String(v.tagline || B.endline);
+          const paper = String(v.endTheme) === "paper";
+          const bx = safe.left, bw = W - safe.left - safe.right, by = safe.top, bh = H - safe.top - safe.bottom;
+          const fsL = Math.round(Math.min(vert ? 270 : 250, vert ? bw / (WORD.length * 0.56) : bw / (WORD.length * 0.56 + 1.3 + 0.3)));
+          const tz = Math.round(fsL * (vert ? 0.95 : 0.92)), gapL = Math.round(fsL * 0.3);
+          const tagFs = Math.round(fsL * (vert ? 0.2 : 0.21));
+          const tagLines = Math.max(1, Math.ceil(TAG.length * 0.5 * tagFs / bw));
+          const tagH = tagFs * 1.22 * tagLines, tagMt = Math.round(fsL * 0.34);
+          const upShift = Math.round((tagH + tagMt) / 2);
+                    const S = vert ? 3.7 : 4.0, N = 14;
+          const rng = HF.rng(41);
+          function mk(host, theme) {
+            const dark = theme === "dark";
+            host.className += " " + ID + "-" + (dark ? "dark" : "pap");
+            const bwr = document.createElement("div"); bwr.className = ID + "-bw"; host.appendChild(bwr);
+            const box = document.createElement("div"); box.className = ID + "-box";
+            Object.assign(box.style, { left: bx + "px", top: by + "px", width: bw + "px", height: bh + "px" }); bwr.appendChild(box);
+            const lock = document.createElement("div"); lock.className = ID + "-lock"; lock.style.marginTop = (-upShift) + "px"; box.appendChild(lock);
+            const row = document.createElement("div"); row.className = ID + "-row" + (vert ? " " + ID + "-col" : ""); row.style.gap = gapL + "px"; row.style.fontSize = fsL + "px"; lock.appendChild(row);
+            const tile = document.createElement("div"); tile.className = ID + "-tile"; Object.assign(tile.style, { width: tz + "px", height: tz + "px" });
+            tile.innerHTML = '<img src="' + B.logo.tile + '" alt="">'; row.appendChild(tile);
+            const cell = document.createElement("div"); cell.className = ID + "-cell"; row.appendChild(cell);
+            const word = document.createElement("div"); word.className = ID + "-word";
+            const face = document.createElement("span"); face.className = ID + "-face"; face.textContent = WORD; face.setAttribute("data-layout-allow-overlap", ""); face.setAttribute("data-layout-allow-overflow", ""); word.setAttribute("data-layout-allow-overlap", ""); word.setAttribute("data-layout-allow-overflow", ""); word.appendChild(face);
+            const ext = [];
+            if (dark) for (let k = 1; k <= N; k++) {
+              const e = document.createElement("span"); e.className = ID + "-ext"; e.textContent = WORD; e.setAttribute("aria-hidden", "true"); e.setAttribute("data-layout-allow-overlap", ""); e.setAttribute("data-layout-allow-overflow", "");
+              e.style.color = "color-mix(in srgb, var(--brand-deep) " + Math.round(k / N * 100) + "%, var(--brand-lit))";
+              e.style.transform = "translate3d(" + (k * 0.6) + "px," + (k * 1.1) + "px," + (-k * 3) + "px)";
+              word.insertBefore(e, face); ext.push(e);
+            }
+            cell.appendChild(word);
+            let ghost = null;
+            if (dark) { ghost = document.createElement("span"); ghost.className = ID + "-ghost"; ghost.textContent = WORD; ghost.setAttribute("data-layout-allow-overlap", ""); ghost.setAttribute("data-layout-allow-overflow", ""); cell.appendChild(ghost); }
+            // tagline: words as nowrap groups of per-character spans so it can wrap on vertical
+            const tag = document.createElement("div"); tag.className = ID + "-tag"; Object.assign(tag.style, { width: bw + "px", fontSize: tagFs + "px", marginTop: tagMt + "px" });
+            const chars = [];
+            TAG.split(" ").forEach((w, wi, arr) => {
+              const g = document.createElement("span"); g.className = "wd";
+              Array.from(w).forEach(c => { const s = document.createElement("span"); s.className = "ch"; s.innerHTML = c + '<i class="cr"></i>'; g.appendChild(s); chars.push(s); });
+              tag.appendChild(g); if (wi < arr.length - 1) tag.appendChild(document.createTextNode(" "));
+            });
+            lock.appendChild(tag);
+            return { bwr, row, tile, cell, word, face, ext, ghost, chars };
+          }
+          const D = mk(document.getElementById(ID + "-dark"), "dark");
+          let PP = null;
+          if (paper) {
+            const ph = document.getElementById(ID + "-pap"); ph.style.display = "block"; ph.style.opacity = "0";
+            const plate = document.createElement("div"); plate.id = ID + "-plate";
+            if (v.flood) Object.assign(plate.style, { left: -W * 0.05 + "px", top: -H * 0.05 + "px", width: W * 1.1 + "px", height: H * 1.1 + "px", borderRadius: 0, boxShadow: "none" });
+            else {
+              const contentH = (vert ? tz + gapL + fsL * 1.02 : Math.max(tz, fsL)) + tagMt + tagH;
+              const lockW = vert ? WORD.length * fsL * 0.56 : tz + gapL + WORD.length * fsL * 0.56;
+              const pw = Math.min(W * 0.94, Math.max(lockW, Math.min(bw, TAG.length * tagFs * 0.5)) + 230), ph2 = Math.min(H * 0.8, contentH + 190);
+              Object.assign(plate.style, { left: (bx + bw / 2 - pw / 2) + "px", top: (by + bh / 2 - ph2 / 2) + "px", width: pw + "px", height: ph2 + "px" });
+            }
+            ph.appendChild(plate);
+            PP = mk(ph, "pap");
+          }
+          const all = PP ? [D, PP] : [D];
+          const tl = gsap.timeline({ paused: true });
+          const FR = 1 / 30;
+          // ---- scene light: soft pool behind, rising slowly (never a flood)
+          tl.fromTo("#" + ID + "-pool", { opacity: 0 }, { opacity: 0.55, duration: 1.4, ease: "sine.out" }, 0);
+          // ---- giant extruded wordmark, camera trucks across (0-1.6), yaw changes the extrusion
+          const word = D.word, ghost = D.ghost;
+          const tr = (el, lag, op) => {
+            tl.fromTo(el, { x: W * 0.2, rotationY: -15, scale: S, transformOrigin: "50% 50%" }, { x: -W * 0.2, rotationY: 11, scale: S, duration: 1.55, ease: "power2.out" }, lag);
+          };
+          tr(word, 0);
+          tl.fromTo(ghost, { x: W * 0.2, rotationY: -15, scale: S, opacity: 0.0 }, { x: -W * 0.2, rotationY: 11, scale: S, duration: 1.55, ease: "power2.out" }, 2 * FR);
+          tl.fromTo(ghost, { opacity: 0 }, { opacity: 0.28, duration: 0.05, ease: "none" }, 2 * FR);
+          tl.fromTo(D.bwr, { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.in" }, 0);
+          // ---- pull back into the lockup (1.5-2.4), motion blur at peak speed; extrusion flattens as yaw returns to 0
+          const T1 = 1.5, TD = 0.95;
+          const cx = 0, cy = 0;   // the word pulls back straight to its lockup place (no second slide: fewer edge crossings, flashcheck)
+          tl.to(word, { x: cx, y: cy, rotationY: 0, scale: 1, duration: TD, ease: "expo.inOut" }, T1);
+          tl.to(ghost, { x: cx, y: cy, rotationY: 0, scale: 1, duration: TD, ease: "expo.inOut" }, T1 + 2 * FR);
+          tl.to(ghost, { opacity: 0, duration: 0.2, ease: "power1.in" }, T1 + 0.5);
+          tl.to(D.ext, { opacity: 0, duration: 0.34, ease: "power2.in" }, T1 + TD - 0.42);
+          const blur = { b: 0 };
+          const setBlur = () => { D.bwr.style.filter = blur.b > 0.05 ? "blur(" + blur.b.toFixed(2) + "px)" : "none"; };
+          tl.fromTo(blur, { b: 0 }, { b: 7, duration: 0.3, ease: "power2.out", onUpdate: setBlur }, T1 + 0.08);
+          tl.to(blur, { b: 0, duration: 0.45, ease: "power2.inOut", onUpdate: setBlur }, T1 + 0.4);
+          // ---- tile joins (colour match: the wordmark face is already the lockup colour), word slides to its place
+          const T2 = T1 + TD - 0.12;
+          all.forEach(L => {
+            tl.fromTo(L.tile, { opacity: 0, scale: 0.55, y: vert ? -40 : 0, x: vert ? 0 : 40 }, { opacity: 1, scale: 1, x: 0, y: 0, duration: 0.55, ease: "back.out(1.5)" }, T2);
+            if (L !== D) tl.set(L.word, { x: 0, y: 0 }, 0);
+          });
+          // ---- tagline types with irregular gaps, newest letters tinted and cooling, caret on the newest letter
+          const T3 = T2 + 0.55;
+          let tt = T3;
+          const times = D.chars.map(() => { const t0 = tt; tt += 0.028 + rng() * 0.05; return t0; });
+          all.forEach((L, li) => {
+            const dk = li === 0, inkC = dk ? P.ink : P.onPaper, tint = dk ? P.accentLift : P.brand;
+            L.chars.forEach((c, i) => {
+              const t0 = times[i], cr = c.querySelector(".cr");
+              tl.fromTo(c, { opacity: 0, color: tint }, { opacity: 1, color: inkC, duration: 0.2, ease: "power1.out" }, t0);
+              tl.fromTo(cr, { opacity: 0 }, { opacity: 1, duration: 0.001 }, t0);
+              if (i < L.chars.length - 1) tl.to(cr, { opacity: 0, duration: 0.001 }, times[i + 1]);
+            });
+            const last = L.chars[L.chars.length - 1].querySelector(".cr"), tEndT = times[times.length - 1];
+            for (let b = 0; b < 3; b++) { tl.to(last, { opacity: 0, duration: 0.001 }, tEndT + 0.25 + b * 0.5); tl.to(last, { opacity: 1, duration: 0.001 }, tEndT + 0.5 + b * 0.5); }
+            tl.to(last, { opacity: 0, duration: 0.001 }, tEndT + 1.75);
+          });
+          // ---- paper wipe (0.5 s), soft edge, never a hard cut
+          const tTypeEnd = times[times.length - 1] + 0.3;
+          let tEnd = tTypeEnd + 0.9;
+          if (PP) {
+            const ph = document.getElementById(ID + "-pap"), m = { v: -30 };
+            const setM = () => { ph.style.setProperty("--m1", m.v.toFixed(1) + "%"); ph.style.setProperty("--m2", (m.v + 24).toFixed(1) + "%"); };
+            setM();
+            const tw = tTypeEnd + 0.15;
+            tl.to(ph, { opacity: 1, duration: 0.001 }, tw);
+            tl.fromTo(m, { v: -30 }, { v: 110, duration: 0.5, ease: "power2.inOut", onUpdate: setM }, tw);
+            tl.to("#" + ID + "-dark", { opacity: 0, duration: 0.001 }, tw + 0.52);
+            tEnd = tw + 0.5 + 0.9;
+          }
+          // slow continuous camera drift on the whole lockup after it lands
+          tl.fromTo([D.row, D.tile], { scale: 1 }, { scale: 1, duration: 0.01 }, 0);
+          tl.fromTo("#" + ID + "-dark", { scale: 1, transformOrigin: "50% 50%" }, { scale: 0.97, duration: tEnd, ease: "sine.inOut" }, T2);
+          if (PP) tl.fromTo("#" + ID + "-pap", { scale: 1, transformOrigin: "50% 50%" }, { scale: 0.97, duration: tEnd, ease: "sine.inOut" }, T2);
+          tl.to({}, { duration: 0.01 }, tEnd + 0.1);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

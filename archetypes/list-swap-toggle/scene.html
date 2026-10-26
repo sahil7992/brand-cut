@@ -1,0 +1,165 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"items","type":"string","label":"List items, | separated (panels in order: thread, showing, application, fee; extra items reuse them)","default":"Texts|Showings|Applications|Fees"},
+  {"id":"toggleLabel","type":"string","label":"Label on the closing toggle","default":"Tidewell replies"},
+  {"id":"fadeOut","type":"boolean","label":"Blur out at the end","default":true}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-display); }
+        #__ID__-drift { position: absolute; inset: 0; }
+        .__ID__-it { position: absolute; white-space: nowrap; color: var(--ink); font-weight: var(--w-display); letter-spacing: var(--track-display); text-shadow: 0 .04em .5em rgba(0,0,0,.45); transform-origin: 0 50%; will-change: transform, opacity, filter; }
+        #__ID__-dot { position: absolute; left: 0; top: 0; border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--paper), var(--glow-6) 55%, var(--glow-5));
+          box-shadow: 0 .1em .25em rgba(0,0,0,.45), 0 0 .5em color-mix(in srgb, var(--glow-6) 55%, transparent); }
+        #__ID__-halo { position: absolute; border-radius: 50%; pointer-events: none; background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 24%, transparent), transparent 72%); }
+        #__ID__-card { position: absolute; overflow: hidden; border-radius: 36px;
+          background: linear-gradient(180deg, rgba(255,255,255,.17), rgba(255,255,255,.04)), color-mix(in srgb, var(--bg2) 58%, transparent);
+          backdrop-filter: blur(24px) saturate(1.5) brightness(1.15); -webkit-backdrop-filter: blur(24px) saturate(1.5) brightness(1.15);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -16px 36px rgba(0,0,0,.22), 0 10px 22px rgba(0,0,0,.35), 0 44px 100px rgba(0,0,0,.5); }
+        #__ID__-edge { position: absolute; inset: 0; border-radius: inherit; padding: 2.5px; pointer-events: none;
+          background: linear-gradient(145deg, rgba(255,255,255,.85), rgba(255,255,255,.14) 38%, rgba(255,255,255,.1) 66%, rgba(255,255,255,.4));
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        .__ID__-panel { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; will-change: transform, opacity, filter; }
+        #__ID__-tg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; opacity: 0; font-family: var(--font-display); }
+        #__ID__-tgl { color: var(--ink); font-weight: var(--w-display); letter-spacing: var(--track-display); white-space: nowrap; }
+        #__ID__-sw { position: relative; flex: none; border-radius: 99px; background: color-mix(in srgb, var(--muted) 45%, #000); box-shadow: inset 0 .06em .2em rgba(0,0,0,.55), 0 0 0 2px rgba(255,255,255,.1); }
+        #__ID__-swon { position: absolute; inset: 0; border-radius: inherit; background: var(--ok); opacity: 0; box-shadow: inset 0 .05em .15em rgba(0,0,0,.25); }
+        #__ID__-kn { position: absolute; border-radius: 50%; background: linear-gradient(180deg, #fff, #dcdcdc); box-shadow: 0 .06em .18em rgba(0,0,0,.5), inset 0 -.04em .08em rgba(0,0,0,.15); }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <div id="__ID__-drift">
+          <div id="__ID__-halo"></div>
+          <div id="__ID__-list"></div>
+          <div id="__ID__-dot"></div>
+          <div id="__ID__-card"><div id="__ID__-panels"></div><div id="__ID__-tg"><span id="__ID__-tgl"></span><div id="__ID__-sw"><div id="__ID__-swon"></div><div id="__ID__-kn"></div></div></div><div id="__ID__-edge"></div></div>
+        </div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe, RU = window.HF.realui;
+          const v = window.__hyperframes.getVariables();
+          const land = W > H;
+          const ux0 = safe.left, ux1 = W - safe.right, uy0 = safe.top, uy1 = H - safe.bottom, uw = ux1 - ux0, uh = uy1 - uy0, cy = (uy0 + uy1) / 2;
+          const items = String(v.items).split("|").map(s => s.trim()).filter(Boolean), n = items.length;
+          const $ = id => document.getElementById(ID + "-" + id);
+          const leads = B.cast.leads, L0 = leads[0], L2 = leads[2] || leads[1] || leads[0];
+
+          /* list geometry */
+          const listEl = $("list"), dot = $("dot");
+          const probe = document.createElement("div");
+          probe.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap;font-size:100px;font-weight:var(--w-display);letter-spacing:var(--track-display)";
+          listEl.appendChild(probe);
+          const w100 = items.map(t => { probe.textContent = t; return probe.offsetWidth; });
+          probe.remove();
+          const slot = 0.62, gap = 0.5; /* em */
+          let fs, pos = [], cardX, cardY, cardW, cardH;
+          if (land) {
+            cardW = 700; cardH = Math.min(744, uh - 100); cardX = ux1 - cardW; cardY = Math.round(cy - cardH / 2);
+            fs = Math.min(80, 100 * (cardX - ux0 - 70) / (Math.max.apply(null, w100) + 100 * slot));
+            const pitch = Math.round(fs * 1.55), top0 = Math.round(cy - ((n - 1) * pitch) / 2);
+            items.forEach((t, k) => pos.push([ux0 + Math.round(fs * slot), top0 + k * pitch]));
+          } else {
+            const tot = w100.reduce((a, b) => a + b, 0) / 100 + n * slot + (n - 1) * gap;
+            fs = Math.min(52, uw / tot);
+            let x = ux0;
+            items.forEach((t, k) => { pos.push([x + Math.round(fs * slot), uy0 + 10]); x += (w100[k] / 100 + slot + gap) * fs; });
+            const listH = Math.round(fs * 1.4) + 60;
+            cardW = Math.round(uw * 0.84); cardX = ux0 + Math.round((uw - cardW) / 2); cardY = uy0 + listH; cardH = uy1 - cardY;
+          }
+          const lh = Math.round(fs * 1.2);
+          const els = items.map((t, k) => {
+            const e = document.createElement("div"); e.className = ID + "-it"; e.id = ID + "-i" + k; e.textContent = t;
+            e.style.cssText += ";font-size:" + fs + "px;line-height:" + lh + "px;left:" + pos[k][0] + "px;top:" + pos[k][1] + "px";
+            listEl.appendChild(e); return e;
+          });
+          const dotS = Math.round(fs * 0.26);
+          const dotXY = k => [Math.round(pos[k][0] - fs * slot + (fs * slot - dotS) / 2 - fs * 0.04), Math.round(pos[k][1] + lh / 2 - dotS / 2)];
+          dot.style.cssText += ";width:" + dotS + "px;height:" + dotS + "px";
+          const halo = $("halo"), hs = Math.max(cardW, cardH) * 1.35;
+          halo.style.cssText += ";width:" + hs + "px;height:" + hs + "px;left:" + Math.round(cardX + cardW / 2 - hs / 2) + "px;top:" + Math.round(cardY + cardH / 2 - hs / 2) + "px";
+          const card = $("card");
+          card.style.cssText += ";left:0;top:0;width:" + cardW + "px;height:" + cardH + "px";
+
+          /* panels: real app UI, scaled to fit the card */
+          const thread = B.story.sampleThread.map(m => m.from === "lead" ? { from: "in", text: m.text } : { from: "out", text: m.text, meta: B.name + " · 9s" });
+          const builders = [
+            () => RU.thread({ name: L0.name, face: L0.face, channel: L0.channel, messages: thread }),
+            () => RU.nextShowing({ when: "Saturday", status: "Confirmed", name: L0.name, time: "11:00 AM", address: B.cast.listing.address }),
+            () => { const d = document.createElement("div"); d.style.cssText = "display:flex;flex-direction:column;gap:14px";
+              d.append(RU.application({ title: "Rental application, " + L0.name, sub: "Sent for signature", status: "Signed", via: "DocuSign" }), RU.application({ title: "Rental application, " + L2.name, sub: "Sent for signature", status: "Signed", via: "DocuSign" })); return d; },
+            () => RU.receipt({ amount: B.story.sampleFee.amount, status: "Paid", client: B.story.sampleFee.payer, face: L2.face }),
+          ];
+          const pad = Math.round(Math.min(cardW, cardH) * 0.06);
+          const meas = document.createElement("div"); meas.style.cssText = "position:absolute;visibility:hidden;left:0;top:0"; card.appendChild(meas);
+          const hk = [], ccy = cardY + cardH / 2, cx = cardX + cardW / 2;
+          const panels = items.map((t, k) => {
+            const el = builders[k % builders.length]();
+            meas.appendChild(el);
+            const nw = el.offsetWidth, nh = el.offsetHeight;
+            const z = Math.min((cardW - 2 * pad) / nw, (cardH - 2 * pad) / nh, 2.6);
+            hk.push(Math.min(cardH, Math.round(nh * z + 2 * pad)));
+            meas.removeChild(el); el.style.zoom = z.toFixed(3);
+            const p = document.createElement("div"); p.className = ID + "-panel"; p.id = ID + "-p" + k; p.appendChild(el); $("panels").appendChild(p);
+            return p;
+          });
+          meas.remove();
+
+          gsap.set(card, { x: cardX, y: Math.round(ccy - hk[0] / 2), height: hk[0] });
+
+          /* toggle (end state inside the collapsed card); everything scales with tgFs */
+          probe.textContent = String(v.toggleLabel); listEl.appendChild(probe);
+          const lw100 = probe.offsetWidth; probe.remove();
+          const need = 0.38 * 2.4 + 0.3 * 2.4 + lw100 / 100 + 0.8 + 2.625;
+          const tgFs = Math.round(Math.min(fs * 0.9, 84, cardW / need)), swH = Math.round(tgFs * 1.5), swW = Math.round(swH * 1.75), knS = swH - 12;
+          const tgH = Math.round(tgFs * 2.4), tgW = Math.round(need * tgFs);
+          const tg = $("tg"); tg.style.cssText += ";padding:0 " + Math.round(tgH * 0.3) + "px 0 " + Math.round(tgH * 0.38) + "px";
+          $("tgl").textContent = String(v.toggleLabel); $("tgl").style.fontSize = tgFs + "px";
+          const sw = $("sw"); sw.style.cssText += ";width:" + swW + "px;height:" + swH + "px;font-size:" + tgFs + "px";
+          const kn = $("kn"); kn.style.cssText += ";width:" + knS + "px;height:" + knS + "px;top:6px;left:6px";
+
+          /* timeline */
+          const tl = gsap.timeline({ paused: true });
+          const T0 = 1.5, HOLD = 1.0;
+          const tk = k => T0 + k * HOLD;
+          els.forEach((e, k) => { gsap.set(e, { opacity: k === 0 ? 1 : 0.38, scale: k === 0 ? 1 : 0.94 }); });
+          tl.fromTo(els, { filter: "blur(12px)", y: 14 }, { filter: "blur(0px)", y: 0, duration: 0.55, stagger: 0.1, ease: "power3.out" }, 0.1);
+          tl.fromTo(dot, { x: dotXY(0)[0], y: dotXY(0)[1], scale: 0 }, { x: dotXY(0)[0], y: dotXY(0)[1], scale: 1, duration: 0.35, ease: "back.out(1.6)" }, 0.3);
+          tl.fromTo(card, { y: Math.round(ccy - hk[0] / 2) + 70, scale: 0.95, opacity: 0, filter: "blur(14px)" }, { y: Math.round(ccy - hk[0] / 2), scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.85, ease: "expo.out" }, 0.35);
+          tl.fromTo(halo, { opacity: 0 }, { opacity: 1, duration: 1.0, ease: "power2.out" }, 0.35);
+          panels.forEach((p, k) => { if (k > 0) gsap.set(p, { opacity: 0 }); });
+          /* first panel: messages arrive one by one */
+          const msgs = panels[0].querySelectorAll(".ru-msg");
+          tl.fromTo(msgs, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.35, stagger: 0.3, ease: "power3.out" }, 0.75);
+          for (let k = 1; k < n; k++) {
+            const t = tk(k), a = k - 1;
+            tl.to(panels[a], { y: -34, opacity: 0, filter: "blur(6px)", duration: 0.25, ease: "power2.in" }, t);
+            tl.fromTo(panels[k], { y: 40, opacity: 0, filter: "blur(8px)" }, { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.35, ease: "expo.out" }, t + 0.2);
+            tl.fromTo(card, { height: hk[a], y: Math.round(ccy - hk[a] / 2) }, { height: hk[k], y: Math.round(ccy - hk[k] / 2), duration: 0.45, ease: "power3.inOut", immediateRender: false }, t + 0.05);
+            tl.fromTo(dot, { x: dotXY(a)[0], y: dotXY(a)[1] }, { x: dotXY(k)[0], y: dotXY(k)[1], duration: 0.27, ease: "power3.inOut", immediateRender: false }, t);
+            tl.to(els[a], { opacity: 0.38, scale: 0.94, duration: 0.27, ease: "power2.out" }, t);
+            tl.to(els[k], { opacity: 1, scale: 1, duration: 0.27, ease: "power2.out" }, t);
+          }
+          /* card collapses into the toggle, which switches on */
+          const tc = tk(n - 1) + 1.2;
+          tl.to(panels[n - 1], { opacity: 0, scale: 0.9, filter: "blur(6px)", duration: 0.3, ease: "power2.in" }, tc + 0.1);
+          tl.fromTo(card, { x: cardX, y: Math.round(ccy - hk[n - 1] / 2), width: cardW, height: hk[n - 1], borderRadius: 36 }, { x: Math.round(cx - tgW / 2), y: Math.round(ccy - tgH / 2), width: tgW, height: tgH, borderRadius: tgH / 2, duration: 0.7, ease: "power3.inOut", immediateRender: false }, tc);
+          tl.to(halo, { scale: 0.7, opacity: 0.6, duration: 0.75, ease: "power2.inOut" }, tc + 0.1);
+          tl.fromTo("#" + ID + "-tg", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, tc + 0.6);
+          const ton = tc + 1.0;
+          tl.to(kn, { x: swW - knS - 12, duration: 0.3, ease: "power3.out" }, ton);
+          tl.to("#" + ID + "-swon", { opacity: 1, duration: 0.25, ease: "power2.out" }, ton);
+          tl.fromTo(kn, { scaleX: 1 }, { scaleX: 1.12, duration: 0.12, yoyo: true, repeat: 1, ease: "power2.inOut" }, ton);
+          const END = ton + 0.9;
+          tl.fromTo("#" + ID + "-drift", { scale: 1, y: 0 }, { scale: 1.04, y: -10, duration: END + 0.6, ease: "sine.out" }, 0);
+          if (v.fadeOut) tl.fromTo("#" + ID + "-drift", { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(10px)", duration: 0.5, ease: "power2.in" }, END);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

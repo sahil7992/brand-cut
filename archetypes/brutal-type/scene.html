@@ -1,0 +1,135 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"lines","type":"string","label":"Lines, | separated. The last word of the last line slides in with the spring, its full stop becomes the live dot","default":"Every lead,|answered|instantly."},
+  {"id":"field","type":"string","label":"Colour field: accent, paper or brand (paper needs flood true)","default":"accent"},
+  {"id":"size","type":"number","label":"Line height as percent of frame height at 16x9 (18-26 reads brutal); fitted down to the safe width, vertical stacks one word per line","default":20,"min":10,"max":28,"step":1},
+  {"id":"dotHandoff","type":"boolean","label":"Zoom through the full stop into the next scene (ends on the dot colour). False = field shrinks back to a point","default":true},
+  {"id":"flood","type":"boolean","label":"Allow the paper field (a large light area, ramped over 0.55 s). False falls back to accent","default":false}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-display); }
+        #__ID__-cam { position: absolute; inset: 0; }
+        #__ID__-field { position: absolute; inset: 0; opacity: 0;
+          background: radial-gradient(130% 100% at 18% 12%, color-mix(in srgb, var(--bt-bg) 93%, #fff), var(--bt-bg) 55%, color-mix(in srgb, var(--bt-bg) 90%, #000)); }
+        #__ID__-box { position: absolute; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; }
+        .__ID__-ln { display: flex; align-items: baseline; position: relative; overflow: hidden; white-space: nowrap; font-weight: 700; letter-spacing: -0.035em;
+          line-height: 0.92; padding: 0.07em 0 0.16em; margin: -0.07em 0 -0.16em; color: var(--bt-ink); font-style: normal; text-transform: none; }
+        .__ID__-ln.open { overflow: visible; }
+        .__ID__-in { display: block; will-change: transform, filter; }
+        .__ID__-last { display: inline-block; color: var(--bt-last); will-change: transform, filter; }
+        .__ID__-dot { display: inline-block; flex: none; border-radius: 50%; background: var(--bt-dot); width: 0.17em; height: 0.17em; margin-left: 0.04em; opacity: 0; }
+        #__ID__-cover { position: absolute; inset: 0; background: var(--bt-dot); clip-path: circle(0px at 50% 50%); }
+        #__ID__-root-wrap { position: absolute; inset: 0; }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="__ID__-hb" x="-40%" y="-10%" width="180%" height="120%"><feGaussianBlur id="__ID__-hbs" stdDeviation="0 0" /></filter></svg>
+        <div id="__ID__-cam">
+          <div id="__ID__-field"></div>
+          <div id="__ID__-box"></div>
+          <div id="__ID__-cover"></div>
+        </div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe;
+          const v = window.__hyperframes.getVariables();
+          const vert = H > W * 1.1;
+          let field = String(v.field);
+          if (field === "paper" && !v.flood) field = "accent";
+          const P = { accent: ["--accent", "--on-paper", "--brand", "--on-paper"], paper: ["--paper", "--on-paper", "--brand", "--on-paper"], brand: ["--brand", "--paper", "--accent-lift", "--brand-deep"] }[field] || ["--accent", "--on-paper", "--paper", "--on-paper"];
+          const cam = document.getElementById(ID + "-cam");
+          [["--bt-bg", P[0]], ["--bt-ink", P[1]], ["--bt-last", P[2]], ["--bt-dot", P[3]]].forEach(([k, s]) => cam.style.setProperty(k, "var(" + s + ")"));
+          document.getElementById(ID + "-cover").style.setProperty("--bt-dot", "var(" + P[3] + ")");
+          const bx = safe.left, bw = W - safe.left - safe.right, by = safe.top, bh = H - safe.top - safe.bottom;
+          const box = document.getElementById(ID + "-box");
+          Object.assign(box.style, { left: bx + "px", top: by + "px", width: bw + "px", height: bh + "px" });
+          let rows = String(v.lines).split("|").map(s => s.trim()).filter(Boolean);
+          if (vert) rows = rows.flatMap(r => r.split(" ").filter(Boolean));
+          const lastRaw = rows[rows.length - 1];
+          const hasDot = /\.$/.test(lastRaw);
+          const lastLine = lastRaw.replace(/\.$/, "");
+          const lastWords = lastLine.split(" ");
+          const lastWord = lastWords.pop();
+          const maxCh = Math.max(...rows.map((r, i) => (i === rows.length - 1 ? r.length + (hasDot ? 0 : 0) : r.length)));
+          const fs = Math.round(Math.min((+v.size) / 100 * 1080 * (vert ? 1 : 1) / 0.92, bw / (maxCh * 0.52)));
+          box.style.fontSize = fs + "px";
+          const inners = [];
+          let lastEl = null, dotEl = null;
+          rows.forEach((r, i) => {
+            const ln = document.createElement("div"); ln.className = ID + "-ln"; ln.setAttribute("data-layout-allow-overflow", "");
+            if (i < rows.length - 1) {
+              const inn = document.createElement("span"); inn.className = ID + "-in"; inn.textContent = r; ln.appendChild(inn); inners.push(inn);
+            } else {
+              ln.className += " open";
+              if (lastWords.length) {
+                const wrap = document.createElement("span"); wrap.style.cssText = "display:inline-block;overflow:hidden;padding:0.07em 0 0.16em;margin:-0.07em 0 -0.16em;white-space:pre";
+                const inn = document.createElement("span"); inn.className = ID + "-in"; inn.textContent = lastWords.join(" ") + " "; wrap.appendChild(inn); ln.appendChild(wrap); inners.push(inn);
+              }
+              lastEl = document.createElement("span"); lastEl.className = ID + "-last"; lastEl.textContent = lastWord; lastEl.setAttribute("data-layout-allow-overlap", ""); ln.appendChild(lastEl);
+              if (hasDot) { dotEl = document.createElement("span"); dotEl.className = ID + "-dot"; ln.appendChild(dotEl); }
+            }
+            box.appendChild(ln);
+          });
+          const abs = (el) => { let x = 0, y = 0; for (let e = el; e && e !== root; e = e.offsetParent) { x += e.offsetLeft; y += e.offsetTop; } return { x: x + el.offsetWidth / 2, y: y + el.offsetHeight / 2 }; };
+          const tl = gsap.timeline({ paused: true });
+          const fld = document.getElementById(ID + "-field"), cover = document.getElementById(ID + "-cover");
+          const diag = Math.hypot(W, H);
+          // field grows from a point at the centre (the previous scene's dot), ramped over 0.55 s so luminance never steps
+          const fs0 = { r: 60 };
+          const setClip = () => { fld.style.clipPath = "circle(" + fs0.r.toFixed(1) + "px at 50% 50%)"; };
+          setClip();
+          tl.fromTo(fld, { opacity: 0 }, { opacity: 1, duration: 0.12, ease: "none" }, 0);
+          tl.fromTo(fs0, { r: 60 }, { r: diag * 0.55, duration: 0.55, ease: "power2.inOut", onUpdate: setClip }, 0);
+          // per-line mask reveal
+          const T = 0.32, ST = 0.2;
+          inners.forEach((inn, i) => { tl.fromTo(inn, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power1.in" }, T + i * ST); tl.fromTo(inn, { y: "118%" }, { y: "0%", duration: 0.6, ease: "expo.out" }, T + i * ST); });
+          // last word: horizontal blur slide in, 3.7% spring
+          const tw = T + inners.length * ST + 0.05;
+          const hbs = document.getElementById(ID + "-hbs"), hb = { s: 70 };
+          tl.set(lastEl, { filter: "url(#" + ID + "-hb)" }, 0);
+          tl.fromTo(hb, { s: 70 }, { s: 0, duration: 0.42, ease: "power3.out", onUpdate: () => hbs.setAttribute("stdDeviation", hb.s.toFixed(2) + " 0") }, tw);
+          tl.fromTo(lastEl, { x: W * 0.6 }, { x: -0.037 * W, duration: 0.42, ease: "power3.out" }, tw);
+          tl.fromTo(lastEl, { opacity: 0 }, { opacity: 1, duration: 0.36, ease: "power2.in" }, tw);   // contrast ramps in while the word is fast (flashcheck)
+          tl.to(lastEl, { x: 0, duration: 0.3, ease: "sine.inOut" }, tw + 0.42);
+          tl.set(lastEl, { filter: "none" }, tw + 0.43);
+          if (dotEl) {
+            tl.fromTo(dotEl, { opacity: 0, scaleX: 0, scaleY: 0 }, { opacity: 1, scaleX: 1.15, scaleY: 0.8, duration: 0.12, ease: "power2.out" }, tw + 0.5);
+            tl.to(dotEl, { scaleX: 1, scaleY: 1, duration: 0.14, ease: "back.out(2)" }, tw + 0.62);
+          }
+          const tEnd = tw + 1.2;
+          // slow continuous drift on the whole poster
+          tl.fromTo(box, { scale: 1, transformOrigin: "0% 50%" }, { scale: 1.03, duration: tEnd + 0.6, ease: "none" }, 0);
+          if (v.dotHandoff && dotEl) {
+            const st = { p: 0 };
+            const d = abs(dotEl), dotR = dotEl.offsetWidth / 2;
+            const apply = () => {
+              const k = Math.exp(st.p * Math.log(8));
+              cam.style.transformOrigin = d.x.toFixed(1) + "px " + d.y.toFixed(1) + "px";
+              cam.style.transform = "scale(" + k.toFixed(3) + ")";
+              cam.style.filter = st.p > 0.02 ? "blur(" + (st.p * 16).toFixed(2) + "px)" : "none";
+              const r = st.p <= 0 ? 0 : dotR * k * 0.92 + st.p * st.p * diag;
+              cover.style.clipPath = "circle(" + r.toFixed(1) + "px at " + d.x.toFixed(1) + "px " + d.y.toFixed(1) + "px)";
+            };
+            tl.fromTo(st, { p: 0 }, { p: 1, duration: 0.62, ease: "power2.in", onUpdate: apply }, tEnd);
+            tl.to(dotEl, { opacity: 0, duration: 0.01 }, tEnd + 0.02);
+            tl.to(box, { opacity: 0, duration: 0.3, ease: "power2.out" }, tEnd);   // text dims as the camera dives, so strokes never strobe past (flashcheck)
+            tl.to(box, { opacity: 0, duration: 0.01 }, tEnd + 0.64);
+          } else {
+            inners.forEach((inn, i) => tl.to(inn, { y: "-118%", opacity: 0, duration: 0.35, ease: "power2.in" }, tEnd + i * 0.06));
+            tl.to(lastEl, { x: -W * 0.2, opacity: 0, duration: 0.3, ease: "power2.out" }, tEnd);
+            if (dotEl) tl.to(dotEl, { opacity: 0, duration: 0.2 }, tEnd);
+            tl.to(fs0, { r: 0, duration: 0.5, ease: "power3.in", onUpdate: setClip }, tEnd + 0.2);
+          }
+          tl.to({}, { duration: 0.01 }, tEnd + 0.95);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

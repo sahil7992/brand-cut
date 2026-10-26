@@ -1,0 +1,266 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"q","type":"string","label":"The question typed into Ask (default BRAND.story.sampleAsk.q)","default":""},
+  {"id":"a","type":"string","label":"The answer that streams in (default BRAND.story.sampleAsk.a)","default":""},
+  {"id":"avatar","type":"string","label":"Face id of the lead on the answer card (BRAND.faces key); empty = first lead in BRAND.cast, none = no card","default":""},
+  {"id":"chips","type":"string","label":"Suggestion chips, | separated, optional Title~Subtitle","default":"Update a listing~Price, status or property details|Reschedule a showing~Find a better time|Write to a client~Start a reply in your voice"},
+  {"id":"time","type":"string","label":"Timestamp shown on the answer","default":"9:41 AM"},
+  {"id":"fadeOut","type":"boolean","label":"Blur the slab out at exitAt","default":false},
+  {"id":"exitAt","type":"number","label":"Second the exit starts when fadeOut is on","default":8.6,"min":6,"max":60,"step":0.1}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-ui); color: var(--app-text); }
+        #__ID__-stage { position: absolute; inset: 0; perspective: 1800px; perspective-origin: 50% 45%; }
+        #__ID__-slab { position: absolute; border-radius: 44px; will-change: transform; }
+        #__ID__-contact { position: absolute; left: 7%; right: 7%; bottom: -34px; height: 80px; border-radius: 50%; background: rgba(0,0,0,.5); filter: blur(44px); }
+        #__ID__-glass { position: absolute; inset: 0; border-radius: 44px; overflow: hidden;
+          backdrop-filter: blur(22px) saturate(1.45) brightness(1.1); -webkit-backdrop-filter: blur(22px) saturate(1.45) brightness(1.1);
+          background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.03) 40%), color-mix(in srgb, var(--accent-deep) 34%, rgba(0,0,0,.55));
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -10px 30px color-mix(in srgb, var(--accent) 16%, transparent), inset 0 0 70px rgba(255,255,255,.04); }
+        #__ID__-refract { position: absolute; left: -5%; right: -5%; bottom: -26%; height: 74%;
+          background: radial-gradient(60% 60% at 50% 70%, color-mix(in srgb, var(--accent-lift) 42%, transparent), color-mix(in srgb, var(--accent) 22%, transparent) 55%, transparent 80%); filter: blur(30px); mix-blend-mode: screen; }
+        #__ID__-rim { position: absolute; inset: 0; border-radius: 44px; padding: 2px; pointer-events: none;
+          background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(255,255,255,.34) 30%, rgba(255,255,255,.14) 62%, rgba(255,255,255,.6));
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        #__ID__-bevel { position: absolute; inset: 9px; border-radius: 36px; border: 1px solid rgba(255,255,255,.14); pointer-events: none; }
+        #__ID__-thick { position: absolute; left: 24px; right: 24px; bottom: -7px; height: 12px; border-radius: 0 0 40px 40px; border-bottom: 2px solid rgba(255,255,255,.28); filter: blur(.6px); }
+        #__ID__-topref { position: absolute; left: 0; right: 0; top: 0; height: 90px; background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0)); }
+        #__ID__-topline { position: absolute; left: 50px; right: 50px; top: 3px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.8) 20%, rgba(255,255,255,.35) 70%, rgba(255,255,255,0)); }
+        #__ID__-sheen { position: absolute; top: -25%; bottom: -25%; width: 22%; left: 0; transform: skewX(-16deg); opacity: 0;
+          background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.16) 50%, rgba(255,255,255,0)); filter: blur(20px); }
+        #__ID__-c { position: absolute; inset: 0; display: flex; flex-direction: column; padding: var(--pad) var(--pad) var(--padb); }
+        #__ID__-hdr { display: flex; align-items: center; gap: 18px; height: var(--hh); flex: none; }
+        #__ID__-hdr img { height: var(--hi); width: auto; display: block; filter: drop-shadow(0 4px 6px rgba(0,0,0,.45)); }
+        #__ID__-title { font-family: var(--font-display); font-weight: var(--w-display); font-size: var(--ft); letter-spacing: var(--track-display); }
+        #__ID__-hl { height: 1px; background: linear-gradient(90deg, rgba(255,255,255,.4), rgba(255,255,255,.08)); flex: none; margin-bottom: 8px; }
+        #__ID__-main { position: relative; flex: 1; min-height: 0; }
+        .__ID__-state { position: absolute; left: 0; right: 0; top: 0; }
+        #__ID__-c[data-fmt="16x9"] #__ID__-empty { bottom: 0; display: flex; align-items: center; gap: 64px; }
+        #__ID__-c[data-fmt="16x9"] #__ID__-lcol { flex: 0 0 44%; }
+        #__ID__-c[data-fmt="16x9"] #__ID__-hero { flex-direction: column; align-items: flex-start; gap: 18px; }
+        #__ID__-c[data-fmt="16x9"] #__ID__-chips { flex: 1; }
+        /* empty state (real Ask screen) */
+        #__ID__-hero { display: flex; align-items: center; gap: 22px; margin: 6px 0 4px; }
+        #__ID__-glyph2 { height: var(--hhi); width: var(--hhi); background: center / contain no-repeat; filter: drop-shadow(0 4px 6px rgba(0,0,0,.45)); }
+        #__ID__-hero h2 { font-family: var(--font-display); font-weight: var(--w-display); font-size: var(--fh); letter-spacing: var(--track-display); line-height: 1; }
+        #__ID__-sub { font-size: var(--fs); color: var(--app-text-soft); margin: 10px 0 var(--gapc); line-height: 1.3; opacity: .92; }
+        .__ID__-chip { display: flex; align-items: center; justify-content: space-between; padding: var(--cp) 6px; border-top: 1px solid rgba(255,255,255,.14); }
+        .__ID__-chip:last-child { border-bottom: 1px solid rgba(255,255,255,.14); }
+        .__ID__-chip b { display: block; font-weight: 500; font-size: var(--fc); letter-spacing: var(--track-ui); }
+        .__ID__-chip small { display: block; margin-top: 4px; font-size: var(--fcs); color: var(--app-muted); filter: brightness(1.25); }
+        .__ID__-chip svg { width: 26px; height: 26px; flex: none; opacity: .75; }
+        /* conversation */
+        #__ID__-user { display: flex; flex-direction: column; align-items: flex-end; }
+        #__ID__-ubox { position: relative; display: flex; align-items: center; padding: 0 var(--up); height: var(--uh); border-radius: 26px 26px 6px 26px; font-size: var(--fu); font-weight: 500; letter-spacing: var(--track-ui); color: var(--app-text);
+          background: linear-gradient(180deg, color-mix(in srgb, var(--app-raised2) 94%, transparent), color-mix(in srgb, var(--app-raised) 92%, transparent)); border: 1px solid rgba(255,255,255,.2); border-right: 3px solid var(--app-accent);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 14px 30px rgba(0,0,0,.4); }
+        #__ID__-umeta { margin-top: 8px; font-size: var(--fm); color: var(--app-text-soft); opacity: .8; }
+        #__ID__-reply { margin-top: var(--gapr); }
+        #__ID__-rhead { display: flex; align-items: baseline; gap: 14px; font-size: var(--fl); }
+        #__ID__-rhead b { font-weight: 500; color: var(--app-text); }
+        #__ID__-rhead span { color: var(--app-muted); filter: brightness(1.3); }
+        #__ID__-rtext { margin-top: 12px; font-size: var(--fa); line-height: 1.27; font-weight: 500; letter-spacing: -0.018em; color: #fff; text-shadow: 0 2px 14px rgba(0,0,0,.45); }
+        #__ID__-rtext .w { display: inline-block; white-space: pre; opacity: 0; }
+        #__ID__-card { display: flex; align-items: center; gap: 16px; opacity: 0; }
+        #__ID__-c[data-fmt="16x9"] #__ID__-card { position: absolute; right: -70px; bottom: -56px; z-index: 3; filter: drop-shadow(0 34px 40px rgba(0,0,0,.5)); }
+        #__ID__-c:not([data-fmt="16x9"]) #__ID__-card { position: absolute; right: 18px; bottom: 20px; z-index: 3; filter: drop-shadow(0 24px 30px rgba(0,0,0,.5)); }
+        /* composer (real) */
+        #__ID__-comp { position: relative; flex: none; height: var(--ch); border-radius: 28px; padding: 18px 26px; background: color-mix(in srgb, var(--app-raised) 94%, transparent);
+          border: 1px solid rgba(255,255,255,.12); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 16px 34px rgba(0,0,0,.35); }
+        #__ID__-ph, #__ID__-typed { position: absolute; left: 26px; top: 20px; right: 26px; font-size: var(--fq); letter-spacing: var(--track-ui); white-space: nowrap; }
+        #__ID__-ph { color: var(--app-muted); filter: brightness(1.2); }
+        #__ID__-typed { color: var(--app-text); }
+        #__ID__-typed span { opacity: 0; }
+        #__ID__-caret { display: inline-block; width: 3px; height: 1.05em; margin-left: 2px; background: var(--app-solid); vertical-align: -0.12em; opacity: 0; }
+        #__ID__-icons { position: absolute; right: 22px; bottom: 16px; display: flex; align-items: center; gap: 20px; }
+        #__ID__-send { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid rgba(255,255,255,.2); }
+        #__ID__-sendfill { position: absolute; inset: 0; border-radius: 50%; background: var(--app-solid); opacity: 0; }
+        #__ID__-send svg { position: relative; width: 26px; height: 26px; }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <svg width="0" height="0" style="position:absolute"><defs>
+          <filter id="__ID__-mb" x="-10%" y="-40%" width="120%" height="180%" color-interpolation-filters="sRGB"><feGaussianBlur id="__ID__-mbg" stdDeviation="0 0" /></filter>
+        </defs></svg>
+        <div id="__ID__-stage">
+          <div id="__ID__-slab">
+            <div id="__ID__-contact"></div>
+            <div id="__ID__-thick"></div>
+            <div id="__ID__-glass"><div id="__ID__-refract"></div><div id="__ID__-topref"></div><div id="__ID__-sheen"></div></div>
+            <div id="__ID__-rim"></div><div id="__ID__-bevel"></div><div id="__ID__-topline"></div>
+            <div id="__ID__-c">
+              <div id="__ID__-hdr"><img id="__ID__-glyph" alt="" /><div id="__ID__-title"></div></div>
+              <div id="__ID__-hl"></div>
+              <div id="__ID__-main">
+                <div class="__ID__-state" id="__ID__-empty">
+                  <div id="__ID__-lcol">
+                    <div id="__ID__-hero"><div id="__ID__-glyph2"></div><h2>Ask me anything.</h2></div>
+                    <div id="__ID__-sub">Update a listing, reschedule a showing, or tell me what you need.</div>
+                  </div>
+                  <div id="__ID__-chips"></div>
+                </div>
+                <div class="__ID__-state" id="__ID__-conv">
+                  <div id="__ID__-user"><div id="__ID__-ubox"></div><div id="__ID__-umeta"></div></div>
+                  <div id="__ID__-reply">
+                    <div id="__ID__-rhead"><b></b><span></span></div>
+                    <div id="__ID__-rtext"></div>
+                  </div>
+                                  </div>
+              </div>
+              <div id="__ID__-comp">
+                <div id="__ID__-ph">What would you like to work on?</div>
+                <div id="__ID__-typed"></div>
+                <div id="__ID__-icons">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--app-muted)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="filter:brightness(1.3)"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+                  <div id="__ID__-send"><div id="__ID__-sendfill"></div><svg id="__ID__-sendsvg" viewBox="0 0 24 24" fill="none" stroke="var(--app-muted)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const $ = (s) => document.getElementById(ID + "-" + s);
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, safe = B.format.safe, fmt = B.format.id;
+          const v = window.__hyperframes.getVariables();
+          const Q = String(v.q || B.story.sampleAsk.q), A = String(v.a || B.story.sampleAsk.a);
+          const chips = String(v.chips || "").split("|").filter(Boolean).map((s) => s.split("~"));
+          const RU = window.HF.realui;
+          const cl = (x) => Math.max(0, Math.min(1, x));
+
+          // ---- geometry per format: the slab is the safe rect (landscape: capped and centred) ----
+          const sw = W - safe.left - safe.right, sh = H - safe.top - safe.bottom;
+          const land = W > H * 1.4;
+          const SW = land ? Math.min(sw, 1300) : sw, SH = land ? Math.min(sh, 864) : sh;
+          const SX = safe.left + (sw - SW) / 2, SY = safe.top + (sh - SH) / 2;
+          const slab = $("slab");
+          Object.assign(slab.style, { left: SX + "px", top: SY + "px", width: SW + "px", height: SH + "px" });
+          const S = {
+            "16x9": { pad: 52, hh: 76, hi: 64, ft: 44, hhi: 104, fh: 82, fs: 32, gapc: 26, cp: 26, fc: 44, fcs: 28, up: 42, uh: 92, fu: 44, fm: 24, gapr: 22, fl: 30, fa: 48, ch: 104, fq: 38, card: 1.0 },
+            "9x16": { pad: 42, hh: 66, hi: 58, ft: 42, hhi: 88, fh: 64, fs: 31, gapc: 22, cp: 26, fc: 42, fcs: 28, up: 34, uh: 92, fu: 42, fm: 24, gapr: 22, fl: 28, fa: 47, ch: 112, fq: 34, card: 0.7 },
+            "1x1": { pad: 44, hh: 68, hi: 56, ft: 38, hhi: 68, fh: 52, fs: 26, gapc: 18, cp: 16, fc: 34, fcs: 23, up: 32, uh: 84, fu: 36, fm: 22, gapr: 24, fl: 26, fa: 40, ch: 124, fq: 32, card: 0.58 },
+            "4x5": { pad: 44, hh: 68, hi: 56, ft: 38, hhi: 70, fh: 54, fs: 27, gapc: 20, cp: 18, fc: 36, fcs: 24, up: 32, uh: 88, fu: 36, fm: 22, gapr: 28, fl: 26, fa: 42, ch: 130, fq: 32, card: 0.75 },
+          }[fmt] || null;
+          const T = S || {};
+          const c = $("c"); c.dataset.fmt = fmt;
+          Object.entries({ pad: T.pad, padb: T.pad, hh: T.hh, hi: T.hi, ft: T.ft, hhi: T.hhi, fh: T.fh, fs: T.fs, gapc: T.gapc, cp: T.cp, fc: T.fc, fcs: T.fcs, up: T.up, uh: T.uh, fu: T.fu, fm: T.fm, gapr: T.gapr, fl: T.fl, fa: T.fa, ch: T.ch, fq: T.fq })
+            .forEach(([k, val]) => c.style.setProperty("--" + k, val + "px"));
+          $("title").textContent = "Ask " + B.name; $("glyph").src = B.logo.askRibbon; $("glyph2").style.backgroundImage = "url(" + B.logo.askRibbon + ")";
+
+          // ---- content ----
+          const arrow = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="var(--app-text-soft)"><path d="M7 17 17 7M9 7h8v8"/></svg>';
+          $("chips").innerHTML = chips.map(([t, s]) => '<div class="' + ID + '-chip"><div><b>' + t + "</b>" + (s ? "<small>" + s + "</small>" : "") + "</div>" + arrow + "</div>").join("");
+          const chipEls = Array.from($("chips").children);
+          $("ubox").textContent = Q;
+          $("umeta").textContent = "You  ·  " + v.time;
+          $("rhead").firstChild.textContent = B.name; $("rhead").lastChild.textContent = v.time;
+          const words = A.split(" ");
+          words.forEach((w, i) => { const s = document.createElement("span"); s.className = "w"; s.textContent = w + (i < words.length - 1 ? " " : ""); $("rtext").appendChild(s); });
+          const wEls = Array.from($("rtext").children);
+          // typed question: irregular gaps from a seeded PRNG (9-17 chars per second, never metronomic)
+          const rnd = HF.rng(41), TYPE0 = 1.45;
+          let tt = TYPE0; const times = [];
+          Array.from(Q).forEach((ch) => { times.push(tt); tt += 0.05 + rnd() * 0.07 + (ch === " " ? 0.03 : 0); });
+          const TYPE1 = tt;
+          $("typed").innerHTML = Array.from(Q).map((ch) => "<span>" + (ch === " " ? "&nbsp;" : ch) + "</span>").join("") + '<i id="' + ID + '-caret"></i>';
+          const spans = Array.from($("typed").querySelectorAll("span"));
+
+          // answer card: the real Next showing component with the lead's face (hidden when avatar is empty)
+          const L0 = B.cast.leads[0] || {};
+          const face = v.avatar === "none" ? "" : String(v.avatar || L0.face || "");
+          const lead = (B.cast.leads.find((l) => l.face === face) || L0).name || "";
+          let cardEl = null;
+          if (face) {
+            const card = document.createElement("div");
+            card.id = ID + "-card";
+            c.appendChild(card);
+            if (land) card.appendChild(RU.avatar(lead, Math.round(72 * T.card), face));
+            cardEl = RU.nextShowing({ when: "Saturday", status: "Confirmed", name: lead, time: "11:00 AM", address: B.cast.listing.address }, { zoom: T.card });
+            card.appendChild(cardEl);
+          }
+
+          // ---- timeline ----
+          const tl = gsap.timeline({ paused: true });
+          const p3 = gsap.parseEase("power3.out"), p2i = gsap.parseEase("power2.in");
+          const SEND = TYPE1 + 0.18, ANS0 = SEND + 0.62, WSTEP = 0.075;
+          const STREAM1 = ANS0 + 0.2 + words.length * WSTEP;
+          gsap.set(slab, { transformOrigin: "50% 50%", y: 0.5 * H, rotationX: 46, rotationY: -2, scale: 1 });
+          gsap.set($("stage"), { opacity: 0.2 });
+          gsap.set([$("hdr"), $("hl"), $("empty"), $("comp")], { opacity: 0 });
+          gsap.set($("conv"), { opacity: 1 });
+          gsap.set([$("ubox"), $("umeta"), $("rhead")], { opacity: 0 });
+
+          // rise + settle with motion blur along the move
+          tl.to(slab, { y: 0, duration: 1.25, ease: "power4.out" }, 0);
+          tl.to(slab, { rotationX: 7, duration: 1.25, ease: "power4.out" }, 0);
+          tl.fromTo(slab, { rotationY: -2 }, { rotationY: 2, duration: STREAM1 + 2, ease: "sine.inOut", immediateRender: false }, 0);
+          tl.to(slab, { rotationX: 2, duration: 2.2, ease: "sine.inOut" }, STREAM1 - 1);
+          tl.fromTo(slab, { scale: 1 }, { scale: 0.96, duration: STREAM1 + 3, ease: "sine.out", immediateRender: false }, 0);
+          tl.to($("stage"), { opacity: 1, duration: 0.6, ease: "power2.out" }, 0);
+          const mbg = $("mbg"), stage = $("stage");
+          const proxy = { t: 0 };
+          const fx = () => {
+            const t = proxy.t;
+            const sy = t < 1.25 ? 16 * (1 - p3(cl((t - 0.05) / 1.1))) : 0;
+            const ex = v.fadeOut ? 12 * p2i(cl((t - v.exitAt) / 0.45)) : 0;
+            if (sy < 0.05 && ex < 0.05) { stage.style.filter = "none"; return; }
+            mbg.setAttribute("stdDeviation", (ex * 0.8).toFixed(2) + " " + Math.max(sy, ex).toFixed(2));
+            stage.style.filter = "url(#" + ID + "-mb)";
+          };
+          tl.to(proxy, { t: 60, duration: 60, ease: "none", onUpdate: fx }, 0);
+          fx();
+          tl.fromTo($("sheen"), { x: -SW * 0.3, opacity: 1 }, { x: SW * 1.15, duration: 1.7, ease: "sine.inOut" }, 0.8);
+          tl.set($("sheen"), { opacity: 0 }, 2.55);
+          tl.fromTo($("sheen"), { x: -SW * 0.3, opacity: 1 }, { x: SW * 1.15, duration: 1.7, ease: "sine.inOut", immediateRender: false }, STREAM1 - 0.4);
+          tl.set($("sheen"), { opacity: 0 }, STREAM1 + 1.4);
+          tl.fromTo($("topref"), { opacity: 0.4 }, { opacity: 1, duration: 1.4, ease: "sine.inOut" }, 0.6);
+
+          // empty state: header, hero, chips (stagger), composer
+          tl.fromTo([$("hdr"), $("hl")], { opacity: 0, y: 10, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.55, ease: "power3.out", immediateRender: false }, 0.55);
+          tl.fromTo($("empty"), { opacity: 0 }, { opacity: 1, duration: 0.01, immediateRender: false }, 0.7);
+          tl.fromTo([$("hero"), $("sub")], { opacity: 0, y: 14, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.55, ease: "power3.out", stagger: 0.08, immediateRender: false }, 0.7);
+          tl.fromTo(chipEls, { opacity: 0, x: 40, filter: "blur(6px)" }, { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.6, ease: "expo.out", stagger: 0.12, immediateRender: false }, 0.9);
+          tl.fromTo($("comp"), { opacity: 0, y: 24, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.55, ease: "power3.out", immediateRender: false }, 0.85);
+
+          // typing the question into the real composer
+          tl.set($("ph"), { opacity: 0 }, TYPE0 - 0.02);
+          for (let k = 0; k < 8; k++) tl.set($("caret"), { opacity: k % 2 ? 0 : 1 }, 1.0 + k * 0.1 + (k > 3 ? 0.05 : 0));
+          tl.set($("caret"), { opacity: 1 }, TYPE0 - 0.02);
+          spans.forEach((s, i) => tl.set(s, { opacity: 1 }, times[i]));
+          tl.fromTo($("sendfill"), { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.out", immediateRender: false }, TYPE0);
+          tl.to($("sendsvg"), { stroke: B.app.onSolid, duration: 0.2 }, TYPE0);
+          // send press at SEND: 0.9 -> spring back, text clears, placeholder returns
+          tl.to($("send"), { scale: 0.86, duration: 0.09, ease: "power2.in" }, SEND);
+          tl.to($("send"), { scale: 1, duration: 0.35, ease: "back.out(2.2)" }, SEND + 0.09);
+          tl.set($("typed"), { opacity: 0 }, SEND + 0.12);
+          tl.set($("caret"), { opacity: 0 }, SEND + 0.12);
+          tl.to($("sendfill"), { opacity: 0, duration: 0.25, ease: "power2.out" }, SEND + 0.2);
+          tl.to($("sendsvg"), { stroke: B.app.muted, duration: 0.25 }, SEND + 0.2);
+          tl.fromTo($("ph"), { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power1.out", immediateRender: false }, SEND + 0.5);
+
+          // empty state leaves, the question lands as a message, then the answer streams
+          tl.to($("empty"), { opacity: 0, y: -16, filter: "blur(10px)", duration: 0.35, ease: "power2.in" }, SEND + 0.1);
+          tl.fromTo($("ubox"), { opacity: 0, y: Math.round(SH * 0.34), filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.62, ease: "power3.out", immediateRender: false }, SEND + 0.14);
+          tl.fromTo($("umeta"), { opacity: 0 }, { opacity: 0.8, duration: 0.4, ease: "power1.out", immediateRender: false }, SEND + 0.55);
+          tl.fromTo($("rhead"), { opacity: 0, y: 14, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.5, ease: "power3.out", immediateRender: false }, ANS0);
+          wEls.forEach((w, i) => {
+            tl.fromTo(w, { opacity: 0, filter: "blur(5px)", y: 8 }, { opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power2.out", immediateRender: false }, ANS0 + 0.2 + i * WSTEP);
+          });
+          if (cardEl) {
+            const card = $("card");
+            tl.fromTo(card, { opacity: 0, y: 40, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.65, ease: "expo.out", immediateRender: false }, STREAM1 + 0.1);
+          }
+          // optional exit
+          if (v.fadeOut) tl.to(stage, { opacity: 0, duration: 0.45, ease: "power2.in" }, v.exitAt);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

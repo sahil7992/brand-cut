@@ -1,0 +1,163 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"day","type":"string","label":"Day column (Sun Mon Tue Wed Thu Fri Sat)","default":"Sat"},
+  {"id":"time","type":"string","label":"Showing time, h:mm AM/PM (09:00 to 14:00)","default":"11:00 AM"},
+  {"id":"lead","type":"string","label":"Lead name (a BRAND.cast lead gets their face and channel)","default":""},
+  {"id":"address","type":"string","label":"Listing address","default":""},
+  {"id":"message","type":"string","label":"Lead reply shown in the notification (blank = auto)","default":""},
+  {"id":"notif","type":"boolean","label":"Show the lead reply notification","default":true},
+  {"id":"fadeOut","type":"boolean","label":"Blur out at the end","default":true}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; font-family: var(--font-ui); }
+        #__ID__-drift, #__ID__-cam, #__ID__-stage { position: absolute; inset: 0; }
+        #__ID__-stage { perspective: 2200px; perspective-origin: 50% 40%; }
+        #__ID__-card { position: absolute; left: 0; top: 0; border-radius: 36px; transform-style: preserve-3d; will-change: transform; }
+        #__ID__-contact { position: absolute; left: 6%; right: 6%; bottom: -34px; height: 70px; border-radius: 50%; background: rgba(0,0,0,.55); filter: blur(34px); }
+        #__ID__-glass { position: absolute; inset: 0; border-radius: 36px; overflow: hidden;
+          background: linear-gradient(180deg, rgba(255,255,255,.17), rgba(255,255,255,.05) 40%), color-mix(in srgb, var(--accent-deep) 40%, rgba(12,12,12,.7));
+          backdrop-filter: blur(24px) saturate(1.5) brightness(1.15);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -12px 28px rgba(0,0,0,.25), 0 36px 90px rgba(0,0,0,.45); }
+        #__ID__-edge { position: absolute; inset: 0; border-radius: 36px; padding: 2.5px; pointer-events: none;
+          background: linear-gradient(150deg, rgba(255,255,255,.9), rgba(255,255,255,.16) 32%, rgba(255,255,255,.1) 66%, rgba(255,255,255,.5));
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        #__ID__-sheen { position: absolute; top: -10%; bottom: -10%; left: -240px; width: 200px; opacity: 0; pointer-events: none; transform: skewX(-18deg);
+          background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.22) 50%, rgba(255,255,255,0)); filter: blur(14px); }
+        #__ID__-ui { position: absolute; transform-origin: 0 0; border-radius: 16px; overflow: hidden; }
+        #__ID__-ui .ru-cal { width: auto; }
+        .__ID__-slot { position: absolute; border-radius: 9px; opacity: 0; pointer-events: none;
+          background: color-mix(in srgb, var(--app-accent) 30%, transparent);
+          border: 1.5px solid color-mix(in srgb, var(--app-accent-lift) 80%, transparent);
+          box-shadow: 0 0 34px color-mix(in srgb, var(--app-accent) 45%, transparent), inset 0 0 18px color-mix(in srgb, var(--app-accent) 25%, transparent); }
+        .__ID__-newev { opacity: 0; }
+        .__ID__-newev .tm i { opacity: 0; }
+        .__ID__-shadow { position: absolute; border-radius: 9px; opacity: 0; background: rgba(0,0,0,.6); filter: blur(10px); }
+        #__ID__-chip { position: absolute; display: flex; align-items: center; gap: 10px; height: 64px; padding: 0 26px 0 14px; border-radius: 32px; opacity: 0; white-space: nowrap;
+          background: linear-gradient(180deg, rgba(255,255,255,.2), rgba(255,255,255,.04)), color-mix(in srgb, var(--app-green) 38%, #06130e);
+          backdrop-filter: blur(16px) saturate(1.4); border: 1px solid color-mix(in srgb, var(--app-green) 70%, white);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 18px 40px rgba(0,0,0,.5), 0 4px 10px rgba(0,0,0,.4);
+          color: #fff; font: 600 30px/1 var(--font-display); letter-spacing: var(--track-display); }
+        #__ID__-chip .ck { width: 38px; height: 38px; border-radius: 50%; background: var(--app-green); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -3px 6px rgba(0,0,0,.2), inset 0 2px 0 rgba(255,255,255,.4); }
+        #__ID__-notif { position: absolute; opacity: 0; transform-origin: 0 0; filter: drop-shadow(0 22px 34px rgba(0,0,0,.55)); }
+        #__ID__-notif .ru-notif { width: 420px; background: color-mix(in srgb, #1b1b1b 95%, transparent); }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <div id="__ID__-drift"><div id="__ID__-cam"><div id="__ID__-stage">
+          <div id="__ID__-card">
+            <div id="__ID__-contact"></div>
+            <div id="__ID__-glass"><div id="__ID__-sheen"></div></div>
+            <div id="__ID__-ui"></div>
+            <div id="__ID__-edge"></div>
+          </div>
+          <div id="__ID__-chip"><span class="ck"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#04271c" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path id="__ID__-tick" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1" d="M5 12.5l5 5L19.500 7"/></svg></span>Confirmed</div>
+          <div id="__ID__-notif"></div>
+        </div></div></div>
+      </div>
+      <script>
+        (() => {
+          const ID = "__ID__";
+          const root = document.querySelector('[data-composition-id="' + ID + '"]');
+          const W = +root.dataset.width, H = +root.dataset.height;
+          const B = window.BRAND, RU = window.HF.realui, safe = B.format.safe;
+          const v = window.__hyperframes.getVariables();
+          const $ = (s) => document.getElementById(ID + "-" + s);
+          const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+          const ci = Math.max(0, DAYS.indexOf(String(v.day).slice(0, 3)));
+          const tm = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(String(v.time).trim()) || ["", "11", "00", "AM"];
+          let hr = (+tm[1]) % 12 + (/pm/i.test(tm[3]) ? 12 : 0) + (+tm[2]) / 60;
+          hr = Math.min(14, Math.max(9, hr));
+          const hLabel = ((Math.floor(hr) + 11) % 12 + 1) + ":" + String(Math.round((hr % 1) * 60)).padStart(2, "0") + " " + (hr >= 12 ? "PM" : "AM");
+          const lead = B.cast.leads.find((l) => l.name === v.lead || l.id === String(v.lead).toLowerCase()) || (v.lead ? { name: String(v.lead), channel: "SMS", face: "" } : B.cast.leads[0]);
+          const address = v.address || B.cast.listing.address;
+          const msg = v.message || FULL[ci] + " at " + hLabel.replace(":00", "") + " works for me";
+
+          // ---- layout per format
+          const VH = ".sub,.range,.bar .chip:not(.rose)";
+          const L = HF.pick({ "16x9": { cols: 4, rows: 4, hide: ".sub" }, "9x16": { cols: 2, rows: 4, hide: VH }, "1x1": { cols: 3, rows: 4, hide: VH }, "4x5": { cols: 3, rows: 5, hide: VH }, def: { cols: 4, rows: 4, hide: ".sub" } });
+          const nwCss = 54 + L.cols * 188 + 48, pad = 16;
+          L.S = HF.land ? 1.3 : Math.min(1.6, (W - safe.left - safe.right - 2 * pad) / nwCss);
+          const HH = 86, H0 = 8, skip = Math.max(1, Math.min(Math.floor(hr - 8 - Math.floor(L.rows / 2) + 0.5), 7 - L.rows));
+          const first = Math.max(0, Math.min(7 - L.cols, ci - L.cols + 2 > 0 ? ci - L.cols + 1 : 0)); // slot column sits at the right edge, like the real app week
+          const cal = RU.calendar({ showNew: false });
+          const ui = $("ui"); ui.appendChild(cal);
+          const grid = cal.querySelector(".ru-grid");
+          const kids = Array.from(grid.children);
+          kids.forEach((k, i) => { if (i > 0 && (i - 1 < first || i - 1 >= first + L.cols)) k.style.display = "none"; });
+          grid.style.gridTemplateColumns = "54px repeat(" + L.cols + ", 1fr)";
+          cal.style.width = nwCss + "px";
+          cal.querySelectorAll(L.hide).forEach((e) => (e.style.display = "none"));
+          const visibleRows = L.rows;
+          kids.forEach((k, i) => { const inner = k.children[1]; if (inner) inner.style.marginTop = -skip * HH + "px"; });
+          grid.style.height = 66 + visibleRows * HH + 1 + "px";
+          grid.style.alignItems = "start";
+          // free the slot, then add the new showing + slot glow + contact shadow
+          const col = kids[ci + 1].querySelector(".col");
+          kids.forEach((k, i) => { const c = k.querySelector(".col"); if (c) c.querySelectorAll(".ru-ev").forEach((e) => { const t = parseFloat(e.style.top); if (e.classList.contains("new") || t > (skip + L.rows) * HH - 60 || t < skip * HH - 4 || (i === ci + 1 && Math.abs(t - (hr - H0) * HH) < 64)) e.remove(); }); });
+          const top = (hr - H0) * HH + 2, hgt = 74;
+          const mkEl = (cls, html) => { const d = document.createElement("div"); d.className = cls; d.innerHTML = html || ""; d.style.cssText = "top:" + top + "px;height:" + hgt + "px;left:5px;right:5px;--c:var(--app-info)"; col.appendChild(d); return d; };
+          const slot = mkEl(ID + "-slot", ""), shadow = mkEl(ID + "-shadow", "");
+          const ev = mkEl("ru-ev big " + ID + "-newev", '<div class="tm"><span>' + hLabel + '</span><i>Confirmed</i></div><b>' + lead.name + '</b><span class="ad">' + address + '</span>');
+          ev.style.zIndex = 3; shadow.style.zIndex = 2; slot.style.zIndex = 1;
+
+          // ---- measure and place
+          const nw = cal.offsetWidth, nh = cal.offsetHeight, S = L.S;
+          const uw = nw * S, uh = nh * S;
+          ui.style.left = pad + "px"; ui.style.top = pad + "px"; ui.style.width = nw + "px"; ui.style.height = nh + "px"; ui.style.transform = "scale(" + S + ")";
+          const cw = uw + pad * 2, ch = uh + pad * 2;
+          const card = $("card"); card.style.width = cw + "px"; card.style.height = ch + "px";
+          const cx0 = (safe.left + (W - safe.right)) / 2, cy0 = (safe.top + (H - safe.bottom)) / 2 + HF.pick({ "16x9": 40, "9x16": 20, def: 20 });
+          const cl = Math.round(cx0 - cw / 2), ct = Math.round(cy0 - ch / 2);
+          card.style.left = cl + "px"; card.style.top = ct + "px";
+          // slot centre in stage px
+          const er = ev.getBoundingClientRect(), sr = root.getBoundingClientRect(), sc = sr.width / W;
+          const ex = (er.left - sr.left) / sc, ey = (er.top - sr.top) / sc, ew = er.width / sc, eh = er.height / sc;
+          // chip above the block (inside card), notification above the card
+          const chip = $("chip");
+          const chipW = 220;
+          chip.style.left = Math.round(ex + ew / 2 - chipW / 2) + "px"; chip.style.top = Math.round(ey - 98) + "px"; chip.style.width = chipW + "px"; chip.style.justifyContent = "flex-start";
+          const nf = $("notif");
+          const notif = RU.notif({ name: lead.name, face: lead.face || undefined, channel: lead.channel, text: msg, when: "now" });
+          nf.appendChild(notif);
+          const NS = HF.pick({ "16x9": 1.2, "9x16": 1.45, def: 1.4 });
+          nf.style.transform = "scale(" + NS + ")";
+          const nW = 420 * NS, nH = notif.offsetHeight * NS;
+          const nx = Math.round(HF.land ? cl + cw - nW - 30 : cx0 - nW / 2);
+          const nyRest = Math.round(HF.land ? ct - nH * 0.45 : ct - nH * 0.5);
+          nf.style.left = nx + "px"; nf.style.top = nyRest + "px";
+
+          // ---- timeline
+          const tl = gsap.timeline({ paused: true });
+          const END = 4.3;
+          tl.fromTo(card, { y: 120, rotationX: 14, opacity: 0, filter: "blur(10px)" }, { y: 0, rotationX: 3, opacity: 1, filter: "blur(0px)", duration: 1.0, ease: "power4.out" }, 0);
+          tl.to(card, { rotationX: 0, duration: 3.2, ease: "sine.inOut" }, 1.0);
+          tl.fromTo($("sheen"), { x: 0, opacity: 0 }, { x: cw + 300, opacity: 1, duration: 1.1, ease: "power2.inOut" }, 0.45);
+          tl.set($("sheen"), { opacity: 0 }, 1.6);
+          if (v.notif) {
+            tl.fromTo(nf, { y: -180, opacity: 0, filter: "blur(10px)" }, { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.65, ease: "expo.out" }, 0.95);
+            tl.to(nf, { y: -40, opacity: 0, filter: "blur(8px)", duration: 0.35, ease: "power2.in" }, 3.1);
+          }
+          tl.fromTo(slot, { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "power2.out" }, 1.25);
+          tl.set(slot, { opacity: 0 }, 2.2);
+          tl.fromTo(ev, { y: -90, scale: 1.2, opacity: 0, filter: "blur(8px)" }, { y: 0, scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.5, ease: "power4.out" }, 2.05);
+          tl.fromTo(shadow, { y: 60, scaleX: 1.18, opacity: 0.25 }, { y: 4, scaleX: 1, opacity: 0.7, duration: 0.5, ease: "power4.out" }, 2.05);
+          tl.to(shadow, { opacity: 0.0, duration: 0.8, ease: "power2.out" }, 2.7);
+                    tl.fromTo(ev.querySelector(".tm i"), { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 2.4);
+          tl.fromTo(chip, { y: 24, scale: 0.8, opacity: 0, filter: "blur(6px)" }, { y: 0, scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.45, ease: "back.out(1.6)" }, 2.4);
+          tl.to($("tick"), { strokeDashoffset: 0, duration: 0.35, ease: "power2.out" }, 2.55);
+          // camera push toward the new showing, then a slow drift
+          const camS = HF.pick({ "16x9": 1.1, def: 1.04 });
+          cam_origin();
+          function cam_origin() { $("cam").style.transformOrigin = Math.round(ex + ew / 2) + "px " + Math.round(ey + eh / 2) + "px"; }
+          tl.fromTo($("cam"), { scale: 1 }, { scale: camS, duration: 1.1, ease: "power3.inOut" }, 1.35);
+          tl.to($("cam"), { scale: camS + 0.03, duration: END - 2.45, ease: "none" }, 2.45);
+          tl.fromTo($("drift"), { y: 0 }, { y: -14, duration: END, ease: "sine.out" }, 0);
+          if (v.fadeOut) tl.fromTo($("drift"), { opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(10px)", duration: 0.4, ease: "power2.in" }, END - 0.4);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

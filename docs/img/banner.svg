@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360">
+  <defs>
+    <radialGradient id="g" cx="78%" cy="110%" r="85%">
+      <stop offset="0" stop-color="#FF7A3D"/>
+      <stop offset="0.35" stop-color="#B8341B"/>
+      <stop offset="0.7" stop-color="#2A0F0A"/>
+      <stop offset="1" stop-color="#0B0B0C"/>
+    </radialGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.04"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="360" fill="#0B0B0C"/>
+  <rect width="1280" height="360" fill="url(#g)"/>
+  <g font-family="-apple-system, 'SF Pro Display', 'Inter', 'Helvetica Neue', Arial, sans-serif">
+    <text x="80" y="170" fill="#F5F1EC" font-size="96" font-weight="600" letter-spacing="-3">brandcut</text>
+    <text x="84" y="226" fill="#F5F1EC" fill-opacity="0.72" font-size="28" font-weight="400">Give Claude Code a company. Get a product film.</text>
+  </g>
+  <g transform="translate(860,70)">
+    <rect width="340" height="200" rx="22" fill="url(#glass)" stroke="#ffffff" stroke-opacity="0.22"/>
+    <g font-family="'SF Mono', 'JetBrains Mono', Menlo, monospace" font-size="17" fill="#F5F1EC">
+      <text x="24" y="44" fill-opacity="0.55">research   </text><text x="200" y="44" fill="#FFB38A">done</text>
+      <text x="24" y="78" fill-opacity="0.55">brand kit  </text><text x="200" y="78" fill="#FFB38A">done</text>
+      <text x="24" y="112" fill-opacity="0.55">30 scenes  </text><text x="200" y="112" fill="#FFB38A">built</text>
+      <text x="24" y="146" fill-opacity="0.55">flashcheck </text><text x="200" y="146" fill="#FFB38A">pass</text>
+      <text x="24" y="180" fill-opacity="0.55">render     </text><text x="200" y="180" fill="#FFB38A">4K 60fps</text>
+    </g>
+  </g>
+</svg>

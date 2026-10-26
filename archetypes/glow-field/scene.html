@@ -1,0 +1,225 @@
+<!doctype html>
+<html data-composition-variables='[
+  {"id":"preset","type":"string","label":"Preset: calm | bloom-once | pool-centre | horizon","default":"calm"},
+  {"id":"keys","type":"string","label":"Optional keyframe table as JSON [[seconds,{param:value}],...]; overrides the preset when set","default":""},
+  {"id":"bloomAt","type":"number","label":"bloom-once: second of the single swell peak","default":1.6,"min":0.5,"max":30,"step":0.1},
+  {"id":"intensity","type":"number","label":"Overall strength multiplier","default":1,"min":0.3,"max":1.3,"step":0.05},
+  {"id":"fadeIn","type":"number","label":"Seconds to rise from black at the start","default":1.2,"min":0,"max":4,"step":0.1}
+]'>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; background: var(--bg); overflow: hidden; }
+        #__ID__-cv { position: absolute; left: 0; top: 0; display: block; }
+      </style>
+      <div id="root" data-composition-id="__ID__" data-width="1920" data-height="1080">
+        <canvas id="__ID__-cv"></canvas>
+      </div>
+      <script>
+        (function () {
+          var ID = "__ID__";
+          var root = document.querySelector('[data-composition-id="' + ID + '"]');
+          var W = +root.dataset.width, H = +root.dataset.height;
+          var B = window.BRAND, safe = B.format.safe;
+          var v = window.__hyperframes.getVariables();
+          var PRESET = String(v.preset || "calm"), INT = +v.intensity || 1, FADE = +v.fadeIn;
+          var cv = document.getElementById(ID + "-cv");
+          cv.width = W; cv.height = H; cv.style.width = W + "px"; cv.style.height = H + "px";
+
+          // layout: key coordinates are authored for 16x9; other formats map them into the safe rect
+          var land = W > H * 1.4;
+          var sx0 = safe.left / W, sx1 = 1 - safe.right / W, sy0 = safe.top / H, sy1 = 1 - safe.bottom / H;
+          var fx = land ? 1 : ((sx1 - sx0) * W) / 1536, fy = land ? 1 : ((sy1 - sy0) * H) / 864;
+          var mapX = function (x) { return land ? x : sx0 + x * (sx1 - sx0); };
+          var mapY = function (y) { return land ? y : sy0 + y * (sy1 - sy0); };
+
+          // parameters; geometry is sticky between keys, strengths fall back to 0
+          var D = { bandY: .6, bandH: .15, bandS: 0, bandW: 2, bandT: 0, tilt: 0,
+                    poolX: .5, poolY: .6, poolRX: .3, poolRY: .25, poolS: 0,
+                    colS: 0, colW: .15, colL: 1, colB: 1, lobeT: 0, lobeB: 0,
+                    rlX: .5, rlY: .7, rlR: .25, rlS: 0, fl: 0, notch: 0, rings: 0 };
+          var NAMES = Object.keys(D);
+          var STICKY = { bandY: 1, bandH: 1, bandW: 1, bandT: 1, poolX: 1, poolY: 1, poolRX: 1, poolRY: 1, colW: 1, colL: 1, colB: 1, rlX: 1, rlY: 1, rlR: 1 };
+          var CAP = { fl: .3, bandS: 1, poolS: 1, colS: .9, rlS: .8, lobeT: .9, lobeB: .9 };
+          var IX = {}; NAMES.forEach(function (n, i) { IX[n] = i; });
+          var sst = function (a, b, x) { var k = Math.min(1, Math.max(0, (x - a) / (b - a))); return k * k * (3 - 2 * k); };
+          var TAU = Math.PI * 2;
+
+          // ---- sources of the parameter vector as a function of time ----
+          var sampleRaw;
+          var KEYS = null;
+          try { KEYS = String(v.keys || "").trim() ? JSON.parse(v.keys) : null; } catch (e) { KEYS = null; }
+          if (KEYS && KEYS.length > 1) {
+            var T = KEYS.map(function (k) { return k[0]; });
+            var cur = {};
+            var rows = KEYS.map(function (k) {
+              var r = {};
+              NAMES.forEach(function (n) {
+                if (k[1][n] !== undefined) cur[n] = k[1][n];
+                else if (STICKY[n]) { if (cur[n] === undefined) cur[n] = D[n]; }
+                else cur[n] = D[n];
+                r[n] = cur[n];
+              });
+              return r;
+            });
+            var V = NAMES.map(function (n) { return rows.map(function (r) { return r[n]; }); });
+            var M = V.map(function (vals) {
+              var n = vals.length, d = [], m = [];
+              for (var i = 0; i < n - 1; i++) d.push((vals[i + 1] - vals[i]) / (T[i + 1] - T[i]));
+              for (var j = 0; j < n; j++) {
+                if (j === 0) m.push(d[0]);
+                else if (j === n - 1) m.push(d[n - 2]);
+                else if (d[j - 1] * d[j] <= 0) m.push(0);
+                else m.push(2 * d[j - 1] * d[j] / (d[j - 1] + d[j]));
+              }
+              return m;
+            });
+            sampleRaw = function (t) {
+              t = Math.min(T[T.length - 1], Math.max(T[0], t));
+              var i = 0;
+              while (i < T.length - 2 && t >= T[i + 1]) i++;
+              var h = T[i + 1] - T[i], s = Math.min(1, Math.max(0, (t - T[i]) / h));
+              var s2 = s * s, s3 = s2 * s;
+              var a = 2 * s3 - 3 * s2 + 1, b = s3 - 2 * s2 + s, c = -2 * s3 + 3 * s2, d = s3 - s2;
+              return V.map(function (vv, p) { return a * vv[i] + b * h * M[p][i] + c * vv[i + 1] + d * h * M[p][i + 1]; });
+            };
+          } else {
+            var P = 8; // seconds; every preset is periodic or settles, so any slot length works
+            var base = function () { return NAMES.map(function (n) { return D[n]; }); };
+            var swell = function (t, at) { return sst(at - 1.0, at, t) * (1 - sst(at, at + 1.6, t)); };
+            sampleRaw = function (t) {
+              var s = base(), ph = TAU * t / P;
+              if (PRESET === "bloom-once") {
+                var b = swell(t, +v.bloomAt);
+                s[IX.poolX] = .5; s[IX.poolY] = .66; s[IX.poolRX] = .30 + .16 * b; s[IX.poolRY] = .24 + .14 * b; s[IX.poolS] = .20 + .34 * b;
+                s[IX.bandY] = .6; s[IX.bandH] = .15; s[IX.bandS] = .10 + .26 * b; s[IX.bandW] = 1.1;
+                s[IX.rlX] = .5 + .1 * Math.sin(ph); s[IX.rlY] = .76; s[IX.rlR] = .26; s[IX.rlS] = .10 * b;
+              } else if (PRESET === "pool-centre") {
+                s[IX.poolX] = .5; s[IX.poolY] = .5; s[IX.poolRX] = .32 + .02 * Math.sin(ph); s[IX.poolRY] = .30 + .02 * Math.sin(ph + 1); s[IX.poolS] = .50 + .06 * Math.sin(ph + .5);
+                s[IX.rlX] = .5 + .22 * Math.cos(ph); s[IX.rlY] = .62 + .06 * Math.sin(2 * ph); s[IX.rlR] = .2; s[IX.rlS] = .09;
+              } else if (PRESET === "horizon") {
+                s[IX.bandY] = .60 + .02 * Math.sin(ph); s[IX.bandH] = .13; s[IX.bandS] = .74 + .06 * Math.sin(ph + 1); s[IX.bandW] = 1.6; s[IX.bandT] = .55;
+                s[IX.poolX] = .5; s[IX.poolY] = .86; s[IX.poolRX] = .42; s[IX.poolRY] = .22; s[IX.poolS] = .20;
+              } else { // calm: horizon band, pool rising under centre, one roaming lobe
+                s[IX.bandY] = .62 + .02 * Math.sin(ph); s[IX.bandH] = .17; s[IX.bandS] = .36 + .05 * Math.sin(ph + 1); s[IX.bandW] = 1.2;
+                s[IX.poolX] = .5; s[IX.poolY] = .78 - .06 * (.5 - .5 * Math.cos(ph)); s[IX.poolRX] = .32; s[IX.poolRY] = .24; s[IX.poolS] = .18 + .16 * (.5 - .5 * Math.cos(ph));
+                s[IX.rlX] = .5 + .30 * Math.cos(ph); s[IX.rlY] = .72 + .06 * Math.sin(2 * ph); s[IX.rlR] = .24; s[IX.rlS] = .13;
+              }
+              return s;
+            };
+          }
+
+          // ---- WebGL ----
+          var gl = cv.getContext("webgl", { preserveDrawingBuffer: true, antialias: false, alpha: false });
+          var decl = NAMES.concat(["bandHuv", "pRX", "pRY", "rR", "cW"]).map(function (n) { return "uniform float u_" + n + ";"; }).join("\n");
+          var vs = "attribute vec2 a; void main(){ gl_Position = vec4(a,0.,1.); }";
+          var fs = [
+            "precision highp float;",
+            "uniform float u_t; uniform vec2 u_res; uniform float u_asp; uniform float u_gain; uniform vec3 u_r[9]; uniform float u_p[9];",
+            decl,
+            "float h12(vec2 p){ vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }",
+            "float hash(vec2 p){ p = fract(p*vec2(443.897,441.423)); p += dot(p,p.yx+19.19); return fract((p.x+p.y)*p.x); }",
+            "float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);",
+            "  return mix(mix(hash(i),hash(i+vec2(1,0)),f.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x), f.y); }",
+            "float g2(float x){ return exp(-x*x); }",
+            "vec3 ramp(float i){",
+            "  i = max(i,0.);",
+            "  vec3 c = u_r[0];",
+            "  for (int k=1;k<9;k++){ c = mix(c, u_r[k], clamp((i-u_p[k-1])/(u_p[k]-u_p[k-1]),0.,1.)); }",
+            "  return c; }",
+            "void main(){",
+            "  vec2 uv = vec2(gl_FragCoord.x/u_res.x, 1.-gl_FragCoord.y/u_res.y);",
+            "  float t = u_t;",
+            "  vec2 w = vec2(vn(uv*vec2(2.2,1.6)+vec2(t*.05,3.1)), vn(uv*vec2(1.9,2.4)+vec2(7.3,t*.045)))-.5;",
+            "  vec2 p = uv + w*.07;",
+            "  float I = 0.;",
+            "  float yb = u_bandY + (p.x-.5)*u_tilt;",
+            "  float e1 = smoothstep(yb-.03, yb+.08, p.y);",
+            "  float e2 = smoothstep(yb, yb+u_bandHuv*2.6, p.y);",
+            "  float stp = .5*e1 + .5*e2 + .09*smoothstep(.88,1.,p.y)*e1;",
+            "  float gau = g2((p.y-yb)/u_bandHuv);",
+            "  float side = 1. - .25*smoothstep(0.,.5,abs(p.x-.5));",
+            "  I += u_bandS * mix(gau, stp, u_bandT) * side * g2((p.x-.5)/u_bandW);",
+            "  vec2 pd = (p-vec2(u_poolX,u_poolY))/vec2(u_pRX,u_pRY);",
+            "  I += u_poolS * exp(-dot(pd,pd));",
+            "  float dy = sqrt((p.y-.5)*(p.y-.5)+.0036)*2.;",
+            "  float reach = smoothstep(0., 1., (dy-(1.-u_colL))/.5);",
+            "  float cw = u_cW*(.6+.4*dy*dy);",
+            "  I += u_colS * reach * mix(1., u_colB, smoothstep(.35,.65,p.y)) * g2((p.x-.5)/cw);",
+            "  vec2 a1 = vec2(p.x*u_asp, p.y), a2 = vec2((1.-p.x)*u_asp, p.y);",
+            "  I += u_lobeT * (exp(-dot(a1,a1)/.22) + exp(-dot(a2,a2)/.22));",
+            "  I += u_lobeB * g2((1.-p.y)/.28) * (.65+.35*vn(vec2(p.x*3.,t*.05)));",
+            "  vec2 rd = (p-vec2(u_rlX,u_rlY))/vec2(u_rR*.9*1.7778/u_asp,u_rR);",
+            "  I += u_rlS * exp(-dot(rd,rd));",
+            "  I += u_fl * (.8 + .35*vn(p*2.+vec2(t*.04,0.))) * (1. - .4*smoothstep(.45,1.,length((uv-.5)*vec2(1.,1.15))*1.6));",
+            "  I *= 1. - u_notch * g2((p.x-.5)/.2) * g2(p.y/.55);",
+            "  vec2 rq = vec2((p.x-.5)*u_asp, p.y-.52); float rr = length(rq);",
+            "  I *= 1. - u_rings*.34*(.5+.5*cos(rr*34.-t*.5))*smoothstep(.1,.35,rr)*smoothstep(1.,.5,rr);",
+            "  I *= 1. + .12*(vn(p*vec2(2.4,1.8)+vec2(t*.06,t*.03))-.5)*step(.001,I);",
+            "  I *= u_gain;",
+            "  vec3 col = ramp(I);",
+            "  float dn = (h12(gl_FragCoord.xy+fract(t)*91.3)+h12(gl_FragCoord.yx+37.7+fract(t)*57.1)-1.)/255.*(1.5+1.1*(1.-smoothstep(0.,.2,I)));",
+            "  gl_FragColor = vec4(col+dn,1.);",
+            "}"
+          ].join("\n");
+          function sh(type, src) {
+            var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+            if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(s));
+            return s;
+          }
+          var pr = gl.createProgram();
+          gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs));
+          gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs));
+          gl.linkProgram(pr); gl.useProgram(pr);
+          var buf = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+          var loc = gl.getAttribLocation(pr, "a");
+          gl.enableVertexAttribArray(loc);
+          gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+          var U = function (n) { return gl.getUniformLocation(pr, n); };
+          var uT = U("u_t"), uGain = U("u_gain");
+          gl.uniform2f(U("u_res"), W, H);
+          gl.uniform1f(U("u_asp"), W / H);
+          // brand ramp: hex -> vec3, stops spread over the same 0..1.08 range as the reference shader
+          var ramp = B.palette.glowRamp, STOPS = [0, .10, .22, .38, .52, .66, .80, .93, 1.08];
+          var hex = function (h) { h = h.replace("#", ""); return [0, 2, 4].map(function (i) { return parseInt(h.substr(i, 2), 16) / 255; }); };
+          var rf = [], pf = [];
+          for (var k = 0; k < 9; k++) { var c = hex(ramp[Math.min(k, ramp.length - 1)]); rf.push(c[0], c[1], c[2]); pf.push(STOPS[k]); }
+          gl.uniform3fv(U("u_r"), new Float32Array(rf));
+          gl.uniform1fv(U("u_p"), new Float32Array(pf));
+          var uN = NAMES.map(function (n) { return U("u_" + n); });
+          var uBH = U("u_bandHuv"), uPX = U("u_pRX"), uPY = U("u_pRY"), uRR = U("u_rR"), uCW = U("u_cW");
+
+          function render(t) {
+            var s = sampleRaw(t).slice();
+            NAMES.forEach(function (n, i) { if (CAP[n] !== undefined) s[i] = Math.min(CAP[n], s[i]); });
+            // sticky geometry -> format layout
+            var bandHuv = s[IX.bandH] * 1080 * fy / H, pRX = s[IX.poolRX] * 1920 * fx / W, pRY = s[IX.poolRY] * 1080 * fy / H;
+            var rR = s[IX.rlR] * 1080 * fy / H, cW = s[IX.colW] * 1920 * fx / W;
+            s[IX.bandY] = mapY(s[IX.bandY]); s[IX.poolX] = mapX(s[IX.poolX]); s[IX.poolY] = mapY(s[IX.poolY]);
+            s[IX.rlX] = mapX(s[IX.rlX]); s[IX.rlY] = mapY(s[IX.rlY]);
+            s[IX.tilt] = s[IX.tilt] || (.05 + .06 * Math.sin(t * Math.PI / 3));
+            var gain = INT * (FADE > 0 ? sst(0, FADE, t) : 1);
+            gl.uniform1f(uT, t); gl.uniform1f(uGain, gain);
+            for (var i = 0; i < uN.length; i++) gl.uniform1f(uN[i], s[i]);
+            gl.uniform1f(uBH, bandHuv); gl.uniform1f(uPX, pRX); gl.uniform1f(uPY, pRY); gl.uniform1f(uRR, rR); gl.uniform1f(uCW, cW);
+            gl.viewport(0, 0, W, H);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+          }
+
+          // the host slot decides how long the field runs; sampling is a pure function of t
+          var host = root.parentElement, LEN = 600;
+          var hd = host && host.getAttribute && parseFloat(host.getAttribute("data-duration"));
+          if (hd > 0) LEN = hd;
+          var proxy = { t: 0 };
+          var tl = gsap.timeline({ paused: true });
+          tl.fromTo(proxy, { t: 0 }, { t: LEN, duration: LEN, ease: "none", onUpdate: function () { render(proxy.t); } }, 0);
+          render(0);
+          window.__timelines[ID] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>
